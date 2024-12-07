@@ -18,7 +18,8 @@ Cargo.lock
 # Edit at https://www.toptal.com/developers/gitignore?templates=c++
 
 .vs
-alone*
+
+x64
 
 ### C++ ###
 # Prerequisites
@@ -47,7 +48,6 @@ alone*
 *.lai
 *.la
 *.a
-*.lib
 
 # Executables
 *.exe

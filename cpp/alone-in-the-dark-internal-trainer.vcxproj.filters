@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="lib">
+      <UniqueIdentifier>{c6e6eb58-c765-4c1e-847c-e2aa36b153fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cpp">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="h">
+      <UniqueIdentifier>{ca969bea-7cac-472a-ae98-c5b5d0a1969b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{709d9b96-ca07-4ec6-bfee-43b1ff8a009f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="deps\ue_4_27_2_sdk\SDK\Basic.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\ue_4_27_2_sdk\SDK\CoreUObject_functions.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_draw.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_impl_dx11.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_impl_win32.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_stdlib.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_tables.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_widgets.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\ue_4_27_2_sdk\SDK\Engine_functions.cpp">
+      <Filter>cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\trainer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="deps\detours\detours.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\ue_4_27_2_sdk\SDK\Engine_classes.hpp">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imconfig.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_impl_dx11.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_impl_win32.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_internal.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_stdlib.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imstb_rectpack.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imstb_textedit.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imstb_truetype.h">
+      <Filter>h</Filter>
+    </ClInclude>
+    <ClInclude Include="src\trainer.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="deps\detours\detours.x64.release.lib">
+      <Filter>lib</Filter>
+    </Library>
+  </ItemGroup>
+</Project>
