@@ -27,8 +27,8 @@ class Trainer {
     static ID3D11RenderTargetView* g_render_target_view;
     static IDXGISwapChain* g_swap_chain;
     static DXGI_SWAP_CHAIN_DESC g_swap_chain_desc;
-    static IDXGISwapChainPresent g_o_fn_present;
-    static IDXGISwapChainResizeBuffers g_o_fn_resize_buffers;
+    static IDXGISwapChainPresent g_o_present;
+    static IDXGISwapChainResizeBuffers g_o_resize_buffers;
 
   public:
     static inline void on_frame();

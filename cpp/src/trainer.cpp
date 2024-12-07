@@ -1,8 +1,5 @@
 ﻿#include "trainer.h"
 
-#include <format>
-#include <string>
-
 #include "../deps/detours/detours.h"
 #include "../deps/imgui/imgui.h"
 #include "../deps/imgui/imgui_impl_dx11.h"
@@ -20,8 +17,8 @@ ID3D11RenderTargetView* Trainer::g_render_target_view = nullptr;
 IDXGISwapChain* Trainer::g_swap_chain = nullptr;
 DXGI_SWAP_CHAIN_DESC Trainer::g_swap_chain_desc = {0};
 
-IDXGISwapChainPresent Trainer::g_o_fn_present = nullptr;
-IDXGISwapChainResizeBuffers Trainer::g_o_fn_resize_buffers = nullptr;
+IDXGISwapChainPresent Trainer::g_o_present = nullptr;
+IDXGISwapChainResizeBuffers Trainer::g_o_resize_buffers = nullptr;
 
 BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
@@ -44,159 +41,125 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
 }
 
 void Trainer::on_frame() {
-    SDK::UWorld* world = SDK::UWorld::GetWorld();
-
-    if (world == nullptr)
+    const auto world = SDK::UWorld::GetWorld();
+    if (!world)
         return;
 
-    if (world->OwningGameInstance == nullptr)
+    const auto game_instance = world->OwningGameInstance;
+    if (!game_instance)
         return;
 
-    if (world->OwningGameInstance->LocalPlayers[0] == nullptr)
+    const auto game_state = world->GameState;
+    if (!game_state)
         return;
 
-    SDK::APlayerController* player_controller =
-        world->OwningGameInstance->LocalPlayers[0]->PlayerController;
-
-    if (player_controller == nullptr)
+    if (!game_instance->LocalPlayers.IsValid())
         return;
 
-    // float mouse_x = 0.0;
-    // float mouse_y = 0.0;
-
-    // player_controller->GetMousePosition(&mouse_x, &mouse_y);
-
-    // auto mouse_pos = std::format("MousePos: {}\t{}", mouse_x, mouse_y);
-
-    auto draw_list = ImGui::GetBackgroundDrawList();
-    // draw_list->AddText(ImVec2(0.0, 0.0), IM_COL32_WHITE, mouse_pos.c_str());
-
-    if (player_controller->AcknowledgedPawn == nullptr)
+    const auto player_instance = game_instance->LocalPlayers[0];
+    if (!player_instance)
         return;
 
-    if (player_controller->AcknowledgedPawn->RootComponent == nullptr)
+    const auto player_controller = player_instance->PlayerController;
+    if (!player_controller)
         return;
 
-    // auto player_pos =
-    //     player_controller->AcknowledgedPawn->K2_GetActorLocation();
+    const auto player_camera = player_controller->PlayerCameraManager;
+    if (!player_camera)
+        return;
 
-    // auto player_pos_str = std::format(
-    //     "PlayerPos: {}\t{}\t{}",
-    //     // Player->AcknowledgedPawn->RootComponent->RelativeLocation.X,
-    //     // Player->AcknowledgedPawn->RootComponent->RelativeLocation.Y,
-    //     // Player->AcknowledgedPawn->RootComponent->RelativeLocation.Z
-    //     player_pos.X,
-    //     player_pos.Y,
-    //     player_pos.Z
+    const auto player_camera_location = player_camera->GetCameraLocation();
+    const auto player_camera_rotation = player_camera->GetCameraRotation();
+
+    const auto player_character = player_controller->Character;
+    if (!player_character)
+        return;
+
+    const auto player_character_localtion =
+        player_character->K2_GetActorLocation();
+
+    // if (!player_character->CharacterMovement)
+    //     return;
+
+    // character->CharacterMovement->bCheatFlying = true;
+    // character->CharacterMovement->SetMovementMode(
+    //     SDK::EMovementMode::MOVE_Flying,
+    //     NULL
     // );
 
-    // draw_list
-    //     ->AddText(ImVec2(0.0, 50.0), IM_COL32_WHITE, player_pos_str.c_str());
-
-    if (world->PersistentLevel == nullptr)
+    const auto levels = world->Levels;
+    if (!levels.IsValid())
         return;
 
-    for (int li = 0; li < world->Levels.Num(); li++) {
-        auto current_level = world->Levels[li];
+    auto draw_list = ImGui::GetBackgroundDrawList();
 
-        if (current_level == nullptr)
+    for (int level_index = 0; level_index < levels.Num(); level_index++) {
+        const auto level = levels[level_index];
+        if (level == nullptr)
             continue;
 
-        SDK::TArray<SDK::AActor*>& actors = current_level->Actors;
-
+        const auto actors = level->Actors;
         if (!actors.IsValid())
             continue;
 
-        for (SDK::AActor* actor : actors) {
+        for (const auto actor : actors) {
             if (actor == nullptr || !actor->IsA(SDK::EClassCastFlags::Pawn))
                 continue;
 
-            auto pawn = static_cast<SDK::APawn*>(actor);
+            const auto pawn = static_cast<SDK::APawn*>(actor);
 
-            if (pawn->RootComponent == nullptr)
-                continue;
+            // if (!player_controller
+            //          ->LineOfSightTo(pawn, player_camera_location, false))
+            //     continue;
 
-            auto pawn_location = pawn->K2_GetActorLocation();
-
-            SDK::FVector2D pawn_screen_pos {0};
-
-            if (!player_controller->ProjectWorldLocationToScreen(
-                    pawn_location,
-                    &pawn_screen_pos,
-                    false
-                )) {
-                continue;
-            }
-
-            int32_t window_width {0};
-            int32_t window_height {0};
-
-            player_controller->GetViewportSize(&window_width, &window_height);
-
-            if (pawn_screen_pos.X < 0 || pawn_screen_pos.Y < 0
-                || pawn_screen_pos.Y > window_height
-                || pawn_screen_pos.X > window_width) {
-                continue;
-            }
-
-            // draw_list->AddText(
-            //     ImVec2(pawn_screen_pos.X, pawn_screen_pos.Y),
-            //     IM_COL32_WHITE,
-            //     pawn->GetName().c_str()
-            // );
-
-            auto pawn_controller = pawn->Controller;
-
+            const auto pawn_controller = pawn->Controller;
             if (pawn_controller == nullptr)
                 continue;
 
-            auto pawn_character = pawn_controller->Character;
-
+            const auto pawn_character = pawn_controller->Character;
             if (pawn_character == nullptr)
                 continue;
 
-            auto mesh = pawn_character->Mesh;
-
-            if (mesh == nullptr)
+            const auto pawn_mesh = pawn_character->Mesh;
+            if (pawn_mesh == nullptr)
                 continue;
 
-            // if (!mesh->IsA(SDK::EClassFlags::SkinnedMeshComponent))
-            //     continue;
-
-            auto skeletal_mesh = mesh->SkeletalMesh;
-
-            if (skeletal_mesh == nullptr)
+            const auto pawn_skeletal_mesh = pawn_mesh->SkeletalMesh;
+            if (pawn_skeletal_mesh == nullptr)
                 continue;
 
-            auto skeleton = skeletal_mesh->Skeleton;
-
-            if (skeleton == nullptr)
+            const auto pawn_skeleton = pawn_skeletal_mesh->Skeleton;
+            if (pawn_skeleton == nullptr)
                 continue;
 
-            auto sockets = skeleton->Sockets;
-
-            if (!sockets.IsValid())
+            auto pawn_sockets = pawn_skeleton->Sockets;
+            if (!pawn_sockets.IsValid())
                 continue;
 
-            auto num_bones = sockets.Num();
+            auto pawn_sockets_num = pawn_sockets.Num();
 
-            for (int i = 0; i < num_bones; i++) {
-                auto socket = sockets[i];
-                auto bone_name = socket->BoneName;
+            for (int pawn_bone_index = 0; pawn_bone_index < pawn_sockets_num;
+                 pawn_bone_index++) {
+                auto pawn_socket = pawn_sockets[pawn_bone_index];
+                auto pawn_bone_name = pawn_socket->BoneName;
 
-                auto bone_world_pos = mesh->GetSocketLocation(bone_name);
+                auto pawn_bone_world_location =
+                    pawn_mesh->GetSocketLocation(pawn_bone_name);
 
-                SDK::FVector2D bone_screen_pos;
+                SDK::FVector2D pawn_bone_screen_location = {0};
 
                 if (player_controller->ProjectWorldLocationToScreen(
-                        bone_world_pos,
-                        &bone_screen_pos,
+                        pawn_bone_world_location,
+                        &pawn_bone_screen_location,
                         false
                     )) {
                     draw_list->AddText(
-                        ImVec2(bone_screen_pos.X, bone_screen_pos.Y),
+                        ImVec2(
+                            pawn_bone_screen_location.X,
+                            pawn_bone_screen_location.Y
+                        ),
                         IM_COL32_WHITE,
-                        bone_name.ToString().c_str()
+                        pawn_bone_name.ToString().c_str()
                     );
                 }
             }
@@ -225,14 +188,14 @@ HRESULT WINAPI Trainer::new_resent(
         HRESULT result = p_swap_chain->GetDevice(IID_PPV_ARGS(&g_device));
 
         if (result)
-            return g_o_fn_present(p_swap_chain, sync_interval, flags);
+            return g_o_present(p_swap_chain, sync_interval, flags);
 
         g_device->GetImmediateContext(&g_context);
 
         result = p_swap_chain->GetDesc(&g_swap_chain_desc);
 
         if (result)
-            return g_o_fn_present(p_swap_chain, sync_interval, flags);
+            return g_o_present(p_swap_chain, sync_interval, flags);
 
         g_output_wnd = g_swap_chain_desc.OutputWindow;
 
@@ -241,7 +204,7 @@ HRESULT WINAPI Trainer::new_resent(
         result = p_swap_chain->GetBuffer(0, IID_PPV_ARGS(&p_back_buffer));
 
         if (result)
-            return g_o_fn_present(p_swap_chain, sync_interval, flags);
+            return g_o_present(p_swap_chain, sync_interval, flags);
 
         result = g_device->CreateRenderTargetView(
             p_back_buffer,
@@ -250,7 +213,7 @@ HRESULT WINAPI Trainer::new_resent(
         );
 
         if (result)
-            return g_o_fn_present(p_swap_chain, sync_interval, flags);
+            return g_o_present(p_swap_chain, sync_interval, flags);
 
         p_back_buffer->Release();
 
@@ -299,7 +262,7 @@ HRESULT WINAPI Trainer::new_resent(
 
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
-    return g_o_fn_present(p_swap_chain, sync_interval, flags);
+    return g_o_present(p_swap_chain, sync_interval, flags);
 }
 
 HRESULT WINAPI Trainer::new_resize_buffers(
@@ -315,7 +278,7 @@ HRESULT WINAPI Trainer::new_resize_buffers(
         g_render_target_view->Release();
     }
 
-    HRESULT result = g_o_fn_resize_buffers(
+    HRESULT result = g_o_resize_buffers(
         p_swap_chain,
         _BufferCount,
         width,
@@ -388,23 +351,22 @@ void Trainer::enable_hook() {
 
     void** pp_swap_chain_vtable = *reinterpret_cast<void***>(g_swap_chain);
 
-    g_o_fn_present = (IDXGISwapChainPresent)pp_swap_chain_vtable[8];
+    g_o_present = (IDXGISwapChainPresent)pp_swap_chain_vtable[8];
 
-    g_o_fn_resize_buffers =
-        (IDXGISwapChainResizeBuffers)pp_swap_chain_vtable[13];
+    g_o_resize_buffers = (IDXGISwapChainResizeBuffers)pp_swap_chain_vtable[13];
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourAttach(&(PVOID&)g_o_fn_present, (void*)new_resent);
-    DetourAttach(&(PVOID&)g_o_fn_resize_buffers, (void*)new_resize_buffers);
+    DetourAttach(&(PVOID&)g_o_present, (void*)new_resent);
+    DetourAttach(&(PVOID&)g_o_resize_buffers, (void*)new_resize_buffers);
     DetourTransactionCommit();
 }
 
 void Trainer::disable_hook() {
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourDetach(&(PVOID&)g_o_fn_present, (void*)new_resent);
-    DetourDetach(&(PVOID&)g_o_fn_resize_buffers, (void*)new_resize_buffers);
+    DetourDetach(&(PVOID&)g_o_present, (void*)new_resent);
+    DetourDetach(&(PVOID&)g_o_resize_buffers, (void*)new_resize_buffers);
     DetourTransactionCommit();
 
     ImGui_ImplDX11_Shutdown();
