@@ -1,12 +1,14 @@
 ﻿#include "trainer.h"
 
 #include <format>
+#include <string>
 
 #include "../deps/detours/detours.h"
 #include "../deps/imgui/imgui.h"
 #include "../deps/imgui/imgui_impl_dx11.h"
 #include "../deps/imgui/imgui_impl_win32.h"
 #include "../deps/ue_4_27_2_sdk/SDK/Engine_classes.hpp"
+// #include "../deps/ue_4_27_2_sdk/SDK.hpp"
 
 bool Trainer::is_initialized = false;
 WNDPROC Trainer::g_o_wnd_proc = nullptr;
@@ -59,15 +61,15 @@ void Trainer::on_frame() {
     if (player_controller == nullptr)
         return;
 
-    float mouse_x = 0.0;
-    float mouse_y = 0.0;
+    // float mouse_x = 0.0;
+    // float mouse_y = 0.0;
 
-    player_controller->GetMousePosition(&mouse_x, &mouse_y);
+    // player_controller->GetMousePosition(&mouse_x, &mouse_y);
 
-    auto mouse_pos = std::format("MousePos: {}\t{}", mouse_x, mouse_y);
+    // auto mouse_pos = std::format("MousePos: {}\t{}", mouse_x, mouse_y);
 
     auto draw_list = ImGui::GetBackgroundDrawList();
-    draw_list->AddText(ImVec2(0.0, 0.0), IM_COL32_WHITE, mouse_pos.c_str());
+    // draw_list->AddText(ImVec2(0.0, 0.0), IM_COL32_WHITE, mouse_pos.c_str());
 
     if (player_controller->AcknowledgedPawn == nullptr)
         return;
@@ -75,71 +77,130 @@ void Trainer::on_frame() {
     if (player_controller->AcknowledgedPawn->RootComponent == nullptr)
         return;
 
-    auto player_pos =
-        player_controller->AcknowledgedPawn->K2_GetActorLocation();
+    // auto player_pos =
+    //     player_controller->AcknowledgedPawn->K2_GetActorLocation();
 
-    auto player_pos_str = std::format(
-        "PlayerPos: {}\t{}\t{}",
-        // Player->AcknowledgedPawn->RootComponent->RelativeLocation.X,
-        // Player->AcknowledgedPawn->RootComponent->RelativeLocation.Y,
-        // Player->AcknowledgedPawn->RootComponent->RelativeLocation.Z
-        player_pos.X,
-        player_pos.Y,
-        player_pos.Z
-    );
+    // auto player_pos_str = std::format(
+    //     "PlayerPos: {}\t{}\t{}",
+    //     // Player->AcknowledgedPawn->RootComponent->RelativeLocation.X,
+    //     // Player->AcknowledgedPawn->RootComponent->RelativeLocation.Y,
+    //     // Player->AcknowledgedPawn->RootComponent->RelativeLocation.Z
+    //     player_pos.X,
+    //     player_pos.Y,
+    //     player_pos.Z
+    // );
 
-    draw_list
-        ->AddText(ImVec2(0.0, 50.0), IM_COL32_WHITE, player_pos_str.c_str());
+    // draw_list
+    //     ->AddText(ImVec2(0.0, 50.0), IM_COL32_WHITE, player_pos_str.c_str());
 
     if (world->PersistentLevel == nullptr)
         return;
 
-    for (int i = 0; i < world->PersistentLevel->Actors.Num(); i++) {
-        if (world->PersistentLevel->Actors[i] == nullptr)
+    for (int li = 0; li < world->Levels.Num(); li++) {
+        auto current_level = world->Levels[li];
+
+        if (current_level == nullptr)
             continue;
 
-        if (world->PersistentLevel->Actors[i]->RootComponent == nullptr)
+        SDK::TArray<SDK::AActor*>& actors = current_level->Actors;
+
+        if (!actors.IsValid())
             continue;
 
-        if (!world->PersistentLevel->Actors[i]->bCanBeDamaged)
-            continue;
+        for (SDK::AActor* actor : actors) {
+            if (actor == nullptr || !actor->IsA(SDK::EClassCastFlags::Pawn))
+                continue;
 
-        SDK::FVector ActorLocation =
-            world->PersistentLevel->Actors[i]->K2_GetActorLocation();
+            auto pawn = static_cast<SDK::APawn*>(actor);
 
-        SDK::FVector2D actor_screen_pos {};
-        if (!player_controller->ProjectWorldLocationToScreen(
-                // World->PersistentLevel->Actors[i]->RootComponent->RelativeLocation,
-                ActorLocation,
-                &actor_screen_pos,
-                false
-            )) {
-            continue;
+            if (pawn->RootComponent == nullptr)
+                continue;
+
+            auto pawn_location = pawn->K2_GetActorLocation();
+
+            SDK::FVector2D pawn_screen_pos {0};
+
+            if (!player_controller->ProjectWorldLocationToScreen(
+                    pawn_location,
+                    &pawn_screen_pos,
+                    false
+                )) {
+                continue;
+            }
+
+            int32_t window_width {0};
+            int32_t window_height {0};
+
+            player_controller->GetViewportSize(&window_width, &window_height);
+
+            if (pawn_screen_pos.X < 0 || pawn_screen_pos.Y < 0
+                || pawn_screen_pos.Y > window_height
+                || pawn_screen_pos.X > window_width) {
+                continue;
+            }
+
+            // draw_list->AddText(
+            //     ImVec2(pawn_screen_pos.X, pawn_screen_pos.Y),
+            //     IM_COL32_WHITE,
+            //     pawn->GetName().c_str()
+            // );
+
+            auto pawn_controller = pawn->Controller;
+
+            if (pawn_controller == nullptr)
+                continue;
+
+            auto pawn_character = pawn_controller->Character;
+
+            if (pawn_character == nullptr)
+                continue;
+
+            auto mesh = pawn_character->Mesh;
+
+            if (mesh == nullptr)
+                continue;
+
+            // if (!mesh->IsA(SDK::EClassFlags::SkinnedMeshComponent))
+            //     continue;
+
+            auto skeletal_mesh = mesh->SkeletalMesh;
+
+            if (skeletal_mesh == nullptr)
+                continue;
+
+            auto skeleton = skeletal_mesh->Skeleton;
+
+            if (skeleton == nullptr)
+                continue;
+
+            auto sockets = skeleton->Sockets;
+
+            if (!sockets.IsValid())
+                continue;
+
+            auto num_bones = sockets.Num();
+
+            for (int i = 0; i < num_bones; i++) {
+                auto socket = sockets[i];
+                auto bone_name = socket->BoneName;
+
+                auto bone_world_pos = mesh->GetSocketLocation(bone_name);
+
+                SDK::FVector2D bone_screen_pos;
+
+                if (player_controller->ProjectWorldLocationToScreen(
+                        bone_world_pos,
+                        &bone_screen_pos,
+                        false
+                    )) {
+                    draw_list->AddText(
+                        ImVec2(bone_screen_pos.X, bone_screen_pos.Y),
+                        IM_COL32_WHITE,
+                        bone_name.ToString().c_str()
+                    );
+                }
+            }
         }
-
-        int32_t window_width {0};
-        int32_t window_height {0};
-
-        player_controller->GetViewportSize(&window_width, &window_height);
-
-        if (actor_screen_pos.X < 0 || actor_screen_pos.X > window_width) {
-            continue;
-        }
-
-        if (actor_screen_pos.Y < 0 || actor_screen_pos.Y > window_height) {
-            continue;
-        }
-
-        ImVec2 TargetLocation = ImVec2(
-            (actor_screen_pos.X + window_width),
-            (actor_screen_pos.Y + window_height)
-        );
-
-        draw_list->AddText(
-            ImVec2(actor_screen_pos.X, actor_screen_pos.Y),
-            IM_COL32_WHITE,
-            world->PersistentLevel->Actors[i]->GetName().c_str()
-        );
     }
 }
 
