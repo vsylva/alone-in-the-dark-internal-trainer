@@ -28,7 +28,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -94,7 +94,9 @@
     <ClCompile Include="deps\ue_4_27_2_sdk\SDK\Basic.cpp" />
     <ClCompile Include="deps\ue_4_27_2_sdk\SDK\CoreUObject_functions.cpp" />
     <ClCompile Include="deps\ue_4_27_2_sdk\SDK\Engine_functions.cpp" />
-    <ClCompile Include="src\trainer.cpp" />
+    <ClCompile Include="src\d3d11hook.cpp" />
+    <ClCompile Include="src\dllmain.cpp" />
+    <ClCompile Include="src\gdk.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="deps\detours\detours.h" />
@@ -108,7 +110,8 @@
     <ClInclude Include="deps\imgui\imstb_textedit.h" />
     <ClInclude Include="deps\imgui\imstb_truetype.h" />
     <ClInclude Include="deps\ue_4_27_2_sdk\SDK\Engine_classes.hpp" />
-    <ClInclude Include="src\trainer.h" />
+    <ClInclude Include="src\d3d11hook.h" />
+    <ClInclude Include="src\gdk.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="deps\detours\detours.x64.release.lib" />

@@ -1,27 +1,25 @@
-#pragma ONCE
+#pragma once
 #pragma comment(lib, "d3d11.lib")
 
 #include <d3d11.h>
 
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
+class D3d11Hook {
+  private:
+    typedef HRESULT(WINAPI* IDXGISwapChainPresent)(IDXGISwapChain*, UINT, UINT);
 
-typedef HRESULT(WINAPI* IDXGISwapChainPresent)(IDXGISwapChain*, UINT, UINT);
+    typedef HRESULT(WINAPI* IDXGISwapChainResizeBuffers)(
+        IDXGISwapChain*,
+        UINT,
+        UINT,
+        UINT,
+        DXGI_FORMAT,
+        UINT
+    );
 
-typedef HRESULT(WINAPI* IDXGISwapChainResizeBuffers)(
-    IDXGISwapChain*,
-    UINT,
-    UINT,
-    UINT,
-    DXGI_FORMAT,
-    UINT
-);
-
-class Trainer {
     static bool is_initialized;
 
     static WNDPROC g_o_wnd_proc;
     static HWND g_output_wnd;
-
     static ID3D11Device* g_device;
     static ID3D11DeviceContext* g_context;
     static ID3D11RenderTargetView* g_render_target_view;
@@ -30,25 +28,24 @@ class Trainer {
     static IDXGISwapChainPresent g_o_present;
     static IDXGISwapChainResizeBuffers g_o_resize_buffers;
 
-  public:
-    static inline void on_frame();
-
     static LRESULT WINAPI
-    new_wnd_proc(const HWND _hWnd, UINT _uMsg, WPARAM _wParam, LPARAM _lParam);
+    wnd_proc_new(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_param);
 
     static HRESULT WINAPI
-    new_resent(IDXGISwapChain* p_swap_chain, UINT sync_interval, UINT flags);
+    present_new(IDXGISwapChain* p_swap_chain, UINT sync_interval, UINT flags);
 
-    static HRESULT WINAPI new_resize_buffers(
+    static HRESULT WINAPI resize_buffers_new(
         IDXGISwapChain* p_swap_chain,
-        UINT _BufferCount,
+        UINT buffer_count,
         UINT width,
         UINT height,
         DXGI_FORMAT new_format,
         UINT swap_chain_flags
     );
 
-    static void enable_hook();
+  public:
 
-    static void disable_hook();
+    static bool is_show_menu;
+    static void hook_enable();
+    static void hook_disable();
 };

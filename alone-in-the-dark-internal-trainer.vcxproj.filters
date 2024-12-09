@@ -46,7 +46,13 @@
     <ClCompile Include="deps\ue_4_27_2_sdk\SDK\Engine_functions.cpp">
       <Filter>cpp</Filter>
     </ClCompile>
-    <ClCompile Include="src\trainer.cpp">
+    <ClCompile Include="src\d3d11hook.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dllmain.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gdk.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -84,7 +90,10 @@
     <ClInclude Include="deps\imgui\imstb_truetype.h">
       <Filter>h</Filter>
     </ClInclude>
-    <ClInclude Include="src\trainer.h">
+    <ClInclude Include="src\d3d11hook.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gdk.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
