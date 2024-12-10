@@ -1,4 +1,4 @@
-https://github.com/user-attachments/assets/76fd6de8-05d2-4021-9381-ed2beb8a57c8
+https://github.com/user-attachments/assets/10338487-7b11-4aa6-b1bb-66dc8a0ae9f5
 
 <div align="center">
   <img src="assets/images/demo.png" alt="" width="600px">
