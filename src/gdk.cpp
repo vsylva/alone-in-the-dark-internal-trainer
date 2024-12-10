@@ -1,5 +1,8 @@
 #include "gdk.h"
 
+#include <format>
+#include <fstream>
+#include <iostream>
 #include <string>
 
 #include "d3d11hook.h"
@@ -30,6 +33,11 @@ SDK::TArray<class SDK::FName> GDK::socket_names = {};
 // SDK::USkeletalMesh* Pawn::skeletal_mesh = nullptr;
 // SDK::USkeleton* Pawn::skeleton = nullptr;
 // SDK::TArray<class SDK::USkeletalMeshSocket*> Pawn::sockets = {};
+
+bool GDK::is_rendering_box_2d = false;
+bool GDK::is_rendering_box_3d = false;
+bool GDK::is_rendering_socket_names = false;
+bool GDK::is_rendering_socket_indices = false;
 
 bool GDK::update() {
     world = SDK::UWorld::GetWorld();
@@ -96,13 +104,13 @@ bool GDK::update() {
 bool GDK::update_pawn(SDK::APawn* apawn) {
     pawn = apawn;
 
-    player_state = apawn->PlayerState;
+    player_state = pawn->PlayerState;
     // only the player has SDK::APlayerState*
-    if (player_state != nullptr) {
-        return false;
-    }
+    // if (player_state != nullptr) {
+    //     return false;
+    // }
 
-    controller = apawn->Controller;
+    controller = pawn->Controller;
     if (controller == nullptr) {
         return false;
     }
@@ -142,65 +150,17 @@ bool GDK::update_pawn(SDK::APawn* apawn) {
 }
 
 void GDK::on_frame() {
-    if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
-        D3d11Hook::is_show_menu = !D3d11Hook::is_show_menu;
-    }
-
-    // static bool IS_KEY_OPEN_MENU_DOWN = false;
-    // if ((GetAsyncKeyState(0xC0) & 0x8000) != 0) {
-    // if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
-    //     if (!IS_KEY_OPEN_MENU_DOWN) {
-    //         IS_KEY_OPEN_MENU_DOWN = true;
-    //         D3d11Hook::is_show_menu = !D3d11Hook::is_show_menu;
-    //     }
-    // } else if (IS_KEY_OPEN_MENU_DOWN) {
-    //     IS_KEY_OPEN_MENU_DOWN = false;
-    // }
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-
-    ImGui::Begin(
-        "#0",
-        nullptr,
-        // TODO
-        // ImGuiWindowFlags_NoInputs|
-        ImGuiWindowFlags_NoTitleBar
-    );
-    auto& io = ImGui::GetIO();
-    ImGui::SetWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetWindowSize(
-        ImVec2(io.DisplaySize.x, io.DisplaySize.y),
-        ImGuiCond_Always
-    );
-
-    on_frame_render();
-
-    ImGui::End();
-
-    ImGui::PopStyleColor();
-    ImGui::PopStyleVar(2);
-}
-
-void GDK::on_frame_render() {
-    // TODO
-    if (D3d11Hook::is_show_menu) {
-        // TODO
-        ImGui::Button("test");
-    }
-
+    // start processing data
     if (update() == false) {
         return;
     }
 
+    // iterate through actors and use their pawns
     const SDK::TArray<class SDK::AActor*> actors = persistent_level->Actors;
 
     if (actors.IsValid() == false) {
         return;
     }
-
-    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
 
     for (const SDK::AActor* const actor : actors) {
         if (actor == nullptr
@@ -212,9 +172,168 @@ void GDK::on_frame_render() {
             continue;
         }
 
+        on_frame_gui();
+    }
+
+    if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
+        D3d11Hook::is_menu_visible = !D3d11Hook::is_menu_visible;
+    }
+
+    // static bool IS_KEY_OPEN_MENU_DOWN = false;
+    // if ((GetAsyncKeyState(0xC0) & 0x8000) != 0) {
+    // if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
+    //     if (!IS_KEY_OPEN_MENU_DOWN) {
+    //         IS_KEY_OPEN_MENU_DOWN = true;
+    //         D3d11Hook::is_menu_visble = !D3d11Hook::is_menu_visble;
+    //     }
+    // } else if (IS_KEY_OPEN_MENU_DOWN) {
+    //     IS_KEY_OPEN_MENU_DOWN = false;
+    // }
+
+    // UI window responsible only for irrelevant data
+    if (D3d11Hook::is_menu_visible == false) {
+        return;
+    }
+
+    // begin window #0
+    // ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    // ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+
+    ImGui::Begin(
+        "Menu##0",
+        nullptr,
+        // TODO
+        // ImGuiWindowFlags_NoInputs|
+        ImGuiWindowFlags_NoMove
+    );
+    // ImGuiIO& io = ImGui::GetIO();
+
+    //
+
+    ImGui::SetWindowSize(
+        // ImVec2(io.DisplaySize.x, io.DisplaySize.y),
+        ImVec2(600.0, 400.0),
+        ImGuiCond_Always
+    );
+
+    if (ImGui::BeginTabBar("#tab_bar")) {
+        if (ImGui::BeginTabItem("render##tab_item_0")) {
+            ImGui::Checkbox(
+                "render box 2d##is_render_box_2d",
+                &is_rendering_box_2d
+            );
+            ImGui::Checkbox(
+                "render box 3d##is_render_box_2d",
+                &is_rendering_box_3d
+            );
+            ImGui::Checkbox(
+                "render socket names##is_render_socket_names",
+                &is_rendering_socket_names
+            );
+            ImGui::Checkbox(
+                "render socket indices##is_rendering_socket_indices",
+                &is_rendering_socket_indices
+            );
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("bone list dumper##tab_item_1")) {
+            ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+
+            if (player_controller->Pawn != nullptr) {
+                if (ImGui::Button("dump player")) {
+                    dump_pawn_sockets(player_controller->Pawn, -1);
+                }
+            }
+            for (int actor_index = 0; actor_index < actors.Num();
+                 actor_index++) {
+                const SDK::AActor* const actor = actors[actor_index];
+
+                if (actor == nullptr
+                    || (actor->IsA(SDK::EClassCastFlags::Pawn) == false)) {
+                    continue;
+                }
+
+                const SDK::APawn* const pawn = (SDK::APawn* const)actor;
+
+                controller = pawn->Controller;
+                if (controller == nullptr) {
+                    continue;
+                }
+
+                character = controller->Character;
+                if (character == nullptr) {
+                    continue;
+                }
+
+                mesh = character->Mesh;
+                if (mesh == nullptr) {
+                    continue;
+                }
+
+                socket_names = mesh->GetAllSocketNames();
+                if (socket_names.IsValid() == false) {
+                    continue;
+                }
+
+                const SDK::FVector location_3d = pawn->K2_GetActorLocation();
+                SDK::FVector2D location_2d;
+                if (GDK::player_controller->ProjectWorldLocationToScreen(
+                        location_3d,
+                        &location_2d,
+                        false
+                    )
+                    == false) {
+                    continue;
+                }
+
+                // if (in_on_screen(ImVec2(location_2d.X, location_2d.Y))
+                //     == false) {
+                //     continue;
+                // }
+
+                std::string pawn_index_str =
+                    std::format("pawn index: {}", actor_index);
+
+                draw_list->AddText(
+                    ImVec2(location_2d.X, location_2d.Y),
+                    IM_COL32_WHITE,
+                    pawn_index_str.c_str()
+                );
+
+                if (ImGui::Button(pawn_index_str.c_str())) {
+                    dump_pawn_sockets(pawn, actor_index);
+                }
+            }
+
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
+
+    // end window #0
+    ImGui::End();
+    // ImGui::PopStyleColor();
+    // ImGui::PopStyleVar(2);
+}
+
+void GDK::on_frame_gui() {
+    if (is_rendering_box_2d) {
         GDK::render_box_2d();
+    }
+
+    if (is_rendering_box_3d) {
         GDK::render_box_3d();
+    }
+
+    if (is_rendering_socket_names) {
         GDK::render_socket_names();
+    }
+
+    if (is_rendering_socket_indices) {
+        GDK::render_socket_indices();
     }
 }
 
@@ -325,24 +444,24 @@ void GDK::render_box_3d() {
 
     ImDrawList* DrawList = ImGui::GetForegroundDrawList();
     for (int i = 0; i < 4; ++i) {
-        if (in_on_screen(screen_locations[i])
-            && in_on_screen(screen_locations[(i + 1) % 4])) {
+        if (is_on_screen(screen_locations[i])
+            && is_on_screen(screen_locations[(i + 1) % 4])) {
             DrawList->AddLine(
                 screen_locations[i],
                 screen_locations[(i + 1) % 4],
                 IM_COL32_WHITE
             );
         }
-        if (in_on_screen(screen_locations[i + 4])
-            && in_on_screen(screen_locations[(i + 1) % 4 + 4])) {
+        if (is_on_screen(screen_locations[i + 4])
+            && is_on_screen(screen_locations[(i + 1) % 4 + 4])) {
             DrawList->AddLine(
                 screen_locations[i + 4],
                 screen_locations[(i + 1) % 4 + 4],
                 IM_COL32_WHITE
             );
         }
-        if (in_on_screen(screen_locations[i])
-            && in_on_screen(screen_locations[i + 4])) {
+        if (is_on_screen(screen_locations[i])
+            && is_on_screen(screen_locations[i + 4])) {
             DrawList->AddLine(
                 screen_locations[i],
                 screen_locations[i + 4],
@@ -370,12 +489,58 @@ void GDK::render_socket_names() {
             IM_COL32_WHITE,
             socket_name.ToString().c_str()
         );
-
-        // printf("index: %d\t%s\n", index, socket_name.ToString().c_str());
     }
 }
 
-bool GDK::in_on_screen(ImVec2 location) {
+void GDK::render_socket_indices() {
+    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+
+    for (const SDK::FName socket_name : socket_names) {
+        const SDK::FVector location_3d = mesh->GetSocketLocation(socket_name);
+        SDK::FVector2D location_2d;
+        if (GDK::player_controller
+                ->ProjectWorldLocationToScreen(location_3d, &location_2d, false)
+            == false) {
+            continue;
+        }
+
+        int socket_index = mesh->GetBoneIndex(socket_name);
+        draw_list->AddText(
+            ImVec2(location_2d.X, location_2d.Y),
+            IM_COL32_WHITE,
+            std::to_string(socket_index).c_str()
+        );
+    }
+}
+
+bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn, int file_logo) {
+    std::ofstream file(
+        std::format("{}_{}.txt", file_logo, pawn->GetName()),
+        std::ios::trunc
+    );
+
+    if (!file) {
+        return false;
+    }
+
+    for (const SDK::FName socket_name : socket_names) {
+        const SDK::FVector location_3d = mesh->GetSocketLocation(socket_name);
+        SDK::FVector2D location_2d;
+        if (GDK::player_controller
+                ->ProjectWorldLocationToScreen(location_3d, &location_2d, false)
+            == false) {
+            continue;
+        }
+
+        int index = mesh->GetBoneIndex(socket_name);
+
+        file << index << ": " << socket_name.ToString() << std::endl;
+    }
+
+    return true;
+}
+
+bool GDK::is_on_screen(ImVec2 location) {
     int viewport_width = {};
     int viewport_height = {};
 

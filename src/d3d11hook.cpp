@@ -8,7 +8,7 @@
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
-bool D3d11Hook::is_show_menu = true;
+bool D3d11Hook::is_menu_visible = true;
 bool D3d11Hook::is_initialized = false;
 WNDPROC D3d11Hook::g_o_wnd_proc = nullptr;
 HWND D3d11Hook::g_output_wnd = nullptr;
@@ -25,13 +25,11 @@ D3d11Hook::IDXGISwapChainResizeBuffers D3d11Hook::g_o_resize_buffers = nullptr;
 LRESULT WINAPI
 D3d11Hook::wnd_proc_new(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_param) {
     if (ImGui_ImplWin32_WndProcHandler(hwnd, u_msg, w_param, l_param)
-        && D3d11Hook::is_show_menu)
+        && D3d11Hook::is_menu_visible) {
         return true;
+    }
 
-    if (!D3d11Hook::is_show_menu || u_msg == WM_KEYUP) {}
     return CallWindowProc(g_o_wnd_proc, hwnd, u_msg, w_param, l_param);
-
-    return DefWindowProcA(hwnd, u_msg, w_param, l_param);
 }
 
 HRESULT WINAPI D3d11Hook::present_new(
@@ -76,7 +74,7 @@ HRESULT WINAPI D3d11Hook::present_new(
 
         ImGuiIO& io = ImGui::GetIO();
 
-        ImGui::StyleColorsDark();
+        ImGui::StyleColorsLight();
 
         io.IniFilename = NULL;
 
@@ -86,8 +84,6 @@ HRESULT WINAPI D3d11Hook::present_new(
             NULL,
             io.Fonts->GetGlyphRangesChineseFull()
         );
-
-        io.ConfigFlags = ImGuiConfigFlags_NoMouseCursorChange;
 
         ImGui_ImplWin32_Init(g_output_wnd);
 

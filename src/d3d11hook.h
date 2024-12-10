@@ -44,8 +44,7 @@ class D3d11Hook {
     );
 
   public:
-
-    static bool is_show_menu;
+    static bool is_menu_visible;
     static void hook_enable();
     static void hook_disable();
 };

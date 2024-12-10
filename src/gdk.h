@@ -9,13 +9,15 @@ class GDK {
     static bool update();
     static bool update_pawn(SDK::APawn*);
 
-    static void on_frame_render();
+    static void on_frame_gui();
 
     static void render_box_2d();
     static void render_box_3d();
     static void render_socket_names();
+    static void render_socket_indices();
 
-    static bool in_on_screen(ImVec2);
+    static bool dump_pawn_sockets(const SDK::APawn* const, const int index);
+    static bool is_on_screen(ImVec2);
 
     static SDK::UWorld* world;
     static SDK::UGameInstance* game_instance;
@@ -41,6 +43,11 @@ class GDK {
     // static SDK::USkeletalMesh* skeletal_mesh;
     // static SDK::USkeleton* skeleton;
     // static SDK::TArray<class SDK::USkeletalMeshSocket*> sockets;
+
+    static bool is_rendering_box_2d;
+    static bool is_rendering_box_3d;
+    static bool is_rendering_socket_names;
+    static bool is_rendering_socket_indices;
 
   public:
     static void on_frame();
