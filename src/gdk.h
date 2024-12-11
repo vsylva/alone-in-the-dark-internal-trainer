@@ -324,9 +324,9 @@ class GDK {
     static void render_socket_names(const SDK::APawn* const);
     static void render_socket_indices(const SDK::APawn* const);
     static void render_bones(const SDK::APawn* const);
-    static void render_actor_flags();
+    static void render_distance(const SDK::APawn* const);
 
-    static bool dump_pawn_sockets(const SDK::APawn* const, const int index);
+    static bool dump_pawn_sockets(const SDK::APawn* const, const int);
     static bool is_on_screen(ImVec2);
 
     static SDK::UWorld* world;
@@ -347,7 +347,7 @@ class GDK {
     static bool is_rendering_socket_names;
     static bool is_rendering_socket_indices;
     static bool is_rendering_bones;
-    static bool is_rendering_flags;
+    static bool is_rendering_distance;
 
   public:
     static void on_frame();
