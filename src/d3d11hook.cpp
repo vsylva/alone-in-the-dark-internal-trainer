@@ -20,10 +20,15 @@ IDXGISwapChain* D3d11Hook::g_swap_chain = nullptr;
 DXGI_SWAP_CHAIN_DESC D3d11Hook::g_swap_chain_desc = {};
 
 D3d11Hook::IDXGISwapChainPresent D3d11Hook::g_o_present = nullptr;
-D3d11Hook::IDXGISwapChainResizeBuffers D3d11Hook::g_o_resize_buffers = nullptr;
+D3d11Hook::IDXGISwapChainResizeBuffers D3d11Hook::g_o_resize_buffers =
+    nullptr;
 
-LRESULT WINAPI
-D3d11Hook::wnd_proc_new(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_param) {
+LRESULT WINAPI D3d11Hook::wnd_proc_new(
+    HWND hwnd,
+    UINT u_msg,
+    WPARAM w_param,
+    LPARAM l_param
+) {
     if (ImGui_ImplWin32_WndProcHandler(hwnd, u_msg, w_param, l_param)
         && D3d11Hook::is_menu_visible) {
         return true;
@@ -89,8 +94,11 @@ HRESULT WINAPI D3d11Hook::present_new(
 
         ImGui_ImplDX11_Init(g_device, g_context);
 
-        g_o_wnd_proc = (WNDPROC
-        )SetWindowLongPtrA(g_output_wnd, GWLP_WNDPROC, (LONG_PTR)wnd_proc_new);
+        g_o_wnd_proc = (WNDPROC)SetWindowLongPtrA(
+            g_output_wnd,
+            GWLP_WNDPROC,
+            (LONG_PTR)wnd_proc_new
+        );
 
         is_initialized = true;
     }
@@ -142,8 +150,11 @@ HRESULT WINAPI D3d11Hook::resize_buffers_new(
 
     p_swap_chain->GetBuffer(0, IID_PPV_ARGS(&p_buffer));
 
-    if (g_device
-            ->CreateRenderTargetView(p_buffer, nullptr, &g_render_target_view))
+    if (g_device->CreateRenderTargetView(
+            p_buffer,
+            nullptr,
+            &g_render_target_view
+        ))
         return 0;
 
     p_buffer->Release();
@@ -204,7 +215,8 @@ void D3d11Hook::hook_enable() {
 
     g_o_present = (IDXGISwapChainPresent)pp_swap_chain_vtable[8];
 
-    g_o_resize_buffers = (IDXGISwapChainResizeBuffers)pp_swap_chain_vtable[13];
+    g_o_resize_buffers =
+        (IDXGISwapChainResizeBuffers)pp_swap_chain_vtable[13];
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());

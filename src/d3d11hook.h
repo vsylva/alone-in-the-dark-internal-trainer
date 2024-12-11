@@ -5,7 +5,11 @@
 
 class D3d11Hook {
   private:
-    typedef HRESULT(WINAPI* IDXGISwapChainPresent)(IDXGISwapChain*, UINT, UINT);
+    typedef HRESULT(WINAPI* IDXGISwapChainPresent)(
+        IDXGISwapChain*,
+        UINT,
+        UINT
+    );
 
     typedef HRESULT(WINAPI* IDXGISwapChainResizeBuffers)(
         IDXGISwapChain*,
@@ -31,8 +35,11 @@ class D3d11Hook {
     static LRESULT WINAPI
     wnd_proc_new(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_param);
 
-    static HRESULT WINAPI
-    present_new(IDXGISwapChain* p_swap_chain, UINT sync_interval, UINT flags);
+    static HRESULT WINAPI present_new(
+        IDXGISwapChain* p_swap_chain,
+        UINT sync_interval,
+        UINT flags
+    );
 
     static HRESULT WINAPI resize_buffers_new(
         IDXGISwapChain* p_swap_chain,
