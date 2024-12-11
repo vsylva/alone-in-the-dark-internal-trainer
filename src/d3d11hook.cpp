@@ -20,28 +20,55 @@ IDXGISwapChain* D3d11Hook::g_swap_chain = nullptr;
 DXGI_SWAP_CHAIN_DESC D3d11Hook::g_swap_chain_desc = {};
 
 D3d11Hook::IDXGISwapChainPresent D3d11Hook::g_o_present = nullptr;
-D3d11Hook::IDXGISwapChainResizeBuffers D3d11Hook::g_o_resize_buffers =
-    nullptr;
+D3d11Hook::IDXGISwapChainResizeBuffers D3d11Hook::g_o_resize_buffers = nullptr;
 
-LRESULT WINAPI D3d11Hook::wnd_proc_new(
-    HWND hwnd,
-    UINT u_msg,
-    WPARAM w_param,
-    LPARAM l_param
-) {
-    if (ImGui_ImplWin32_WndProcHandler(hwnd, u_msg, w_param, l_param)
-        && D3d11Hook::is_menu_visible) {
-        return true;
+LRESULT WINAPI D3d11Hook::wnd_proc_new(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_param) {
+    // TODO need to find a better way
+    switch (u_msg) {
+        case WM_KEYDOWN:
+            // key ~
+            if (w_param != 0xC0) {
+                break;
+            }
+
+            ImGui::GetIO().AddKeyEvent(ImGuiKey_GraveAccent, true);
+            break;
+
+        case WM_KEYUP:
+            if (w_param != 0xC0) {
+                break;
+            }
+
+            ImGui::GetIO().AddKeyEvent(ImGuiKey_GraveAccent, false);
+            break;
+
+        case WM_LBUTTONDOWN:
+            ImGui::GetIO().AddMouseButtonEvent(ImGuiMouseButton_Left, true);
+            break;
+
+        case WM_LBUTTONUP:
+
+            ImGui::GetIO().AddMouseButtonEvent(ImGuiMouseButton_Left, false);
+            break;
+
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+
+        default:
+            break;
+    }
+
+    if (D3d11Hook::is_menu_visible) {
+        ImGui::GetIO().MouseDrawCursor = true;
+    } else {
+        ImGui::GetIO().MouseDrawCursor = false;
     }
 
     return CallWindowProc(g_o_wnd_proc, hwnd, u_msg, w_param, l_param);
 }
 
-HRESULT WINAPI D3d11Hook::present_new(
-    IDXGISwapChain* p_swap_chain,
-    UINT sync_interval,
-    UINT flags
-) {
+HRESULT WINAPI D3d11Hook::present_new(IDXGISwapChain* p_swap_chain, UINT sync_interval, UINT flags) {
     if (!is_initialized) {
         HRESULT result = p_swap_chain->GetDevice(IID_PPV_ARGS(&g_device));
 
@@ -64,11 +91,7 @@ HRESULT WINAPI D3d11Hook::present_new(
         if (result)
             return g_o_present(p_swap_chain, sync_interval, flags);
 
-        result = g_device->CreateRenderTargetView(
-            p_back_buffer,
-            nullptr,
-            &g_render_target_view
-        );
+        result = g_device->CreateRenderTargetView(p_back_buffer, nullptr, &g_render_target_view);
 
         if (result)
             return g_o_present(p_swap_chain, sync_interval, flags);
@@ -83,22 +106,13 @@ HRESULT WINAPI D3d11Hook::present_new(
 
         io.IniFilename = NULL;
 
-        io.Fonts->AddFontFromFileTTF(
-            "C:\\windows\\fonts\\simhei.ttf",
-            20.0f,
-            NULL,
-            io.Fonts->GetGlyphRangesChineseFull()
-        );
+        io.Fonts->AddFontFromFileTTF("C:\\windows\\fonts\\simhei.ttf", font_size, NULL, io.Fonts->GetGlyphRangesChineseFull());
 
         ImGui_ImplWin32_Init(g_output_wnd);
 
         ImGui_ImplDX11_Init(g_device, g_context);
 
-        g_o_wnd_proc = (WNDPROC)SetWindowLongPtrA(
-            g_output_wnd,
-            GWLP_WNDPROC,
-            (LONG_PTR)wnd_proc_new
-        );
+        g_o_wnd_proc = (WNDPROC)SetWindowLongPtrA(g_output_wnd, GWLP_WNDPROC, (LONG_PTR)wnd_proc_new);
 
         is_initialized = true;
     }
@@ -137,24 +151,13 @@ HRESULT WINAPI D3d11Hook::resize_buffers_new(
         g_render_target_view->Release();
     }
 
-    HRESULT result = g_o_resize_buffers(
-        p_swap_chain,
-        buffer_count,
-        width,
-        height,
-        new_format,
-        swap_chain_flags
-    );
+    HRESULT result = g_o_resize_buffers(p_swap_chain, buffer_count, width, height, new_format, swap_chain_flags);
 
     ID3D11Texture2D* p_buffer;
 
     p_swap_chain->GetBuffer(0, IID_PPV_ARGS(&p_buffer));
 
-    if (g_device->CreateRenderTargetView(
-            p_buffer,
-            nullptr,
-            &g_render_target_view
-        ))
+    if (g_device->CreateRenderTargetView(p_buffer, nullptr, &g_render_target_view))
         return 0;
 
     p_buffer->Release();
@@ -183,8 +186,7 @@ void D3d11Hook::hook_enable() {
     g_swap_chain_desc.BufferDesc.RefreshRate.Numerator = 60;
     g_swap_chain_desc.BufferDesc.RefreshRate.Denominator = 1;
     g_swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    g_swap_chain_desc.BufferDesc.ScanlineOrdering =
-        DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+    g_swap_chain_desc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
     g_swap_chain_desc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
     g_swap_chain_desc.SampleDesc.Count = 1;
     g_swap_chain_desc.SampleDesc.Quality = 0;
@@ -215,8 +217,7 @@ void D3d11Hook::hook_enable() {
 
     g_o_present = (IDXGISwapChainPresent)pp_swap_chain_vtable[8];
 
-    g_o_resize_buffers =
-        (IDXGISwapChainResizeBuffers)pp_swap_chain_vtable[13];
+    g_o_resize_buffers = (IDXGISwapChainResizeBuffers)pp_swap_chain_vtable[13];
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
