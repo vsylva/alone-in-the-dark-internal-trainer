@@ -8,21 +8,53 @@
 
 #include "d3d11hook.h"
 
-// GDK
-SDK::UWorld* GDK::world = nullptr;
-SDK::UGameInstance* GDK::game_instance = nullptr;
-SDK::AGameStateBase* GDK::game_state = nullptr;
-SDK::ULocalPlayer* GDK::local_player = nullptr;
-SDK::APlayerController* GDK::player_controller = nullptr;
-SDK::APawn* GDK::player_pawn = nullptr;
-// XXX dead code
-SDK::APlayerCameraManager* GDK::player_camera_manager = nullptr;
-SDK::ACharacter* GDK::player_character = nullptr;
-SDK::UCharacterMovementComponent* GDK::player_character_movement = nullptr;
-SDK::ULevel* GDK::persistent_level = nullptr;
-// XXX dead code
-SDK::TArray<class SDK::ULevel*> GDK::levels = {};
-SDK::TArray<class SDK::AActor*> GDK::actors = {};
+std::vector<std::vector<CemeteryCreatureBones>> GDK::BONE_LISTS = {
+    std::vector<CemeteryCreatureBones> {
+        CemeteryCreatureBones::Root_M,
+        CemeteryCreatureBones::Spine1_M,
+        CemeteryCreatureBones::Spine2_M,
+        CemeteryCreatureBones::Spine3_M,
+        CemeteryCreatureBones::Chest_M,
+        CemeteryCreatureBones::Neck_B_M,
+        CemeteryCreatureBones::Head_B_M
+    },
+    std::vector<CemeteryCreatureBones> {
+        CemeteryCreatureBones::Chest_M,
+        CemeteryCreatureBones::Scapula_L,
+        CemeteryCreatureBones::Shoulder_L,
+        CemeteryCreatureBones::ShoulderPart1_L,
+        CemeteryCreatureBones::Elbow_L,
+        CemeteryCreatureBones::ElbowPart1_L,
+        CemeteryCreatureBones::Wrist_L
+    },
+    std::vector<CemeteryCreatureBones> {
+        CemeteryCreatureBones::Chest_M,
+        CemeteryCreatureBones::Scapula_R,
+        CemeteryCreatureBones::Shoulder_R,
+        CemeteryCreatureBones::ShoulderPart1_R,
+        CemeteryCreatureBones::Elbow_R,
+        CemeteryCreatureBones::ElbowPart1_R,
+        CemeteryCreatureBones::Wrist_R
+    },
+    std::vector<CemeteryCreatureBones> {
+        CemeteryCreatureBones::Root_M,
+        CemeteryCreatureBones::Hip_L,
+        CemeteryCreatureBones::HipPart1_L,
+        CemeteryCreatureBones::Knee_L,
+        CemeteryCreatureBones::KneePart1_L,
+        CemeteryCreatureBones::Ankle_L,
+        CemeteryCreatureBones::Toes_L
+    },
+    std::vector<CemeteryCreatureBones> {
+        CemeteryCreatureBones::Root_M,
+        CemeteryCreatureBones::Hip_R,
+        CemeteryCreatureBones::HipPart1_R,
+        CemeteryCreatureBones::Knee_R,
+        CemeteryCreatureBones::KneePart1_R,
+        CemeteryCreatureBones::Ankle_R,
+        CemeteryCreatureBones::Toes_R
+    }
+};
 
 bool GDK::is_rendering_box_2d = false;
 bool GDK::is_rendering_box_3d = false;
@@ -31,115 +63,104 @@ bool GDK::is_rendering_socket_indices = false;
 bool GDK::is_rendering_bones = false;
 bool GDK::is_rendering_distance = false;
 
+SDK::UWorld* World::world = nullptr;
+SDK::UGameInstance* World::game_instance = nullptr;
+SDK::AGameStateBase* World::game_state = nullptr;
+SDK::ULocalPlayer* World::local_player = nullptr;
+SDK::APlayerController* World::player_controller = nullptr;
+SDK::ACharacter* World::player_character = nullptr;
+SDK::ULevel* World::persistent_level = nullptr;
+SDK::TArray<class SDK::AActor*> World::actors = {};
+
+SDK::APawn* Pawn::pawn = nullptr;
+SDK::AController* Pawn::controller = nullptr;
+SDK::ACharacter* Pawn::character = nullptr;
+SDK::USkeletalMeshComponent* Pawn::mesh = nullptr;
+SDK::TArray<class SDK::FName> Pawn::socket_names = {};
+
 void GDK::on_frame() {
     if (ImGui::IsKeyPressed(ImGuiKey_GraveAccent)) {
         D3d11Hook::is_menu_visible = !D3d11Hook::is_menu_visible;
     }
 
-    world = SDK::UWorld::GetWorld();
-    if (world == nullptr) {
+    if (!World::update()) {
         return;
     }
 
-    game_instance = world->OwningGameInstance;
-    if (game_instance == nullptr) {
+    render_game_state();
+
+    on_actors();
+
+    if (!D3d11Hook::is_menu_visible) {
         return;
     }
 
-    game_state = world->GameState;
-    if (game_state == nullptr) {
-        return;
-    }
+    render_ui_window();
+    render_debug_window();
 
-    if (game_instance->LocalPlayers.IsValid() == false) {
-        return;
-    }
+    // XXX alternative, cuz not the best choice
+    // static bool IS_KEY_OPEN_MENU_DOWN = false;
+    // if ((GetAsyncKeyState(0xC0) & 0x8000) != 0) {
+    // if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
+    //     if (!IS_KEY_OPEN_MENU_DOWN) {
+    //         IS_KEY_OPEN_MENU_DOWN = true;
+    //         D3d11Hook::is_menu_visble = !D3d11Hook::is_menu_visble;
+    //     }
+    // } else if (IS_KEY_OPEN_MENU_DOWN) {
+    //     IS_KEY_OPEN_MENU_DOWN = false;
+    // }
+}
 
-    local_player = game_instance->LocalPlayers[0];
-    if (local_player == nullptr) {
-        return;
-    }
-
-    player_controller = local_player->PlayerController;
-    if (player_controller == nullptr) {
-        return;
-    }
-
-    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-    draw_list->AddText(
-        {0, 0},
-        IM_COL32_WHITE,
-        std::to_string(game_state->GetGameTimeSinceCreation()).c_str()
-    );
-
-    draw_list->AddText(
-        {0, 50},
-        IM_COL32_WHITE,
-        game_state->GetFullName().c_str()
-    );
-
-    player_pawn = player_controller->AcknowledgedPawn;
-    if (player_pawn == nullptr) {
-        return;
-    }
-
-    player_camera_manager = player_controller->PlayerCameraManager;
-    if (player_camera_manager == nullptr) {
-        return;
-    }
-
-    player_character = player_controller->Character;
-    if (player_character == nullptr) {
-        return;
-    }
-
-    player_character_movement = player_character->CharacterMovement;
-    if (player_character_movement == nullptr) {
-        return;
-    }
-
-    persistent_level = world->PersistentLevel;
-    if (persistent_level == nullptr) {
-        return;
-    }
-
-    draw_list->AddText(
-        {0, 100},
-        IM_COL32_WHITE,
-        persistent_level->GetFullName().c_str()
-    );
-
-    levels = world->Levels;
-    if (levels.IsValid() == false) {
-        return;
-    }
-
-    actors = persistent_level->Actors;
-    if (actors.IsValid() == false) {
-        return;
-    }
-
-    for (const SDK::AActor* const actor : actors) {
-        if (actor == nullptr
-            || (actor->IsA(SDK::EClassCastFlags::Pawn) == false)) {
+void GDK::on_actors() {
+    for (const SDK::AActor* const actor : World::actors) {
+        if (actor == nullptr || !actor->IsA(SDK::EClassCastFlags::Pawn)) {
             continue;
         }
 
-        const SDK::APawn* const pawn = (SDK::APawn* const)actor;
+        Pawn::pawn = (SDK::APawn* const)actor;
 
-        float distance = player_pawn->GetDistanceTo(pawn);
-
+        float distance =
+            World::player_controller->GetDistanceTo(Pawn::pawn);
         if (distance > 4095) {
             continue;
         }
 
-        GDK::on_pawn(pawn);
+        if (!Pawn::update()) {
+            continue;
+        }
+
+        GDK::on_pawn();
+    }
+}
+
+void GDK::on_pawn() {
+    if (GDK::is_rendering_box_2d) {
+        GDK::render_box_2d();
     }
 
-    if (D3d11Hook::is_menu_visible == false) {
-        return;
+    if (GDK::is_rendering_box_3d) {
+        GDK::render_box_3d();
     }
 
+    if (GDK::is_rendering_socket_names) {
+        GDK::render_socket_names();
+    }
+
+    if (GDK::is_rendering_socket_indices) {
+        GDK::render_socket_indices();
+    }
+
+    if (GDK::is_rendering_bones) {
+        GDK::render_bones();
+    }
+
+    if (GDK::is_rendering_distance) {
+        GDK::render_distance();
+    }
+}
+
+void GDK::render_ui_window() {
+    // XXX not needed for now
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     // ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
@@ -153,104 +174,28 @@ void GDK::on_frame() {
         if (ImGui::BeginTabItem("render##tab_item_0")) {
             ImGui::Checkbox(
                 "box 2d##is_render_box_2d",
-                &is_rendering_box_2d
+                &GDK::is_rendering_box_2d
             );
             ImGui::Checkbox(
                 "box 3d##is_render_box_2d",
-                &is_rendering_box_3d
+                &GDK::is_rendering_box_3d
             );
             ImGui::Checkbox(
                 "socket names##is_render_socket_names",
-                &is_rendering_socket_names
+                &GDK::is_rendering_socket_names
             );
             ImGui::Checkbox(
                 "socket indices##is_rendering_socket_indices",
-                &is_rendering_socket_indices
+                &GDK::is_rendering_socket_indices
             );
             ImGui::Checkbox(
                 "bones##is_rendering_bones",
-                &is_rendering_bones
+                &GDK::is_rendering_bones
             );
             ImGui::Checkbox(
                 "distance##is_rendering_flags",
-                &is_rendering_distance
+                &GDK::is_rendering_distance
             );
-
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("bone list dumper##tab_item_1")) {
-            ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-
-            if (ImGui::Button("player##player")) {
-                dump_pawn_sockets(player_controller->Pawn, -1);
-            }
-
-            for (int actor_index = 0; actor_index < actors.Num();
-                 actor_index++) {
-                const SDK::AActor* const actor = actors[actor_index];
-
-                if (actor == nullptr
-                    || (actor->IsA(SDK::EClassCastFlags::Pawn) == false)) {
-                    continue;
-                }
-
-                const SDK::APawn* const pawn = (SDK::APawn* const)actor;
-
-                const SDK::AController* const controller =
-                    pawn->Controller;
-                if (controller == nullptr) {
-                    continue;
-                }
-
-                const SDK::ACharacter* const character =
-                    controller->Character;
-                if (character == nullptr) {
-                    continue;
-                }
-
-                const SDK::USkeletalMeshComponent* const mesh =
-                    character->Mesh;
-                if (mesh == nullptr) {
-                    continue;
-                }
-
-                const SDK::TArray<class SDK::FName> socket_names =
-                    mesh->GetAllSocketNames();
-                if (socket_names.IsValid() == false) {
-                    continue;
-                }
-
-                const SDK::FVector location_3d =
-                    pawn->K2_GetActorLocation();
-                SDK::FVector2D location_2d;
-                if (GDK::player_controller->ProjectWorldLocationToScreen(
-                        location_3d,
-                        &location_2d,
-                        false
-                    )
-                    == false) {
-                    continue;
-                }
-
-                if (is_on_screen({location_2d.X, location_2d.Y})
-                    == false) {
-                    continue;
-                }
-
-                std::string pawn_index_str =
-                    std::format("{}_{}", pawn->GetName(), actor_index);
-
-                draw_list->AddText(
-                    ImVec2(location_2d.X, location_2d.Y),
-                    IM_COL32_WHITE,
-                    pawn_index_str.c_str()
-                );
-
-                if (ImGui::Button(pawn_index_str.c_str())) {
-                    dump_pawn_sockets(pawn, actor_index);
-                }
-            }
 
             ImGui::EndTabItem();
         }
@@ -259,78 +204,103 @@ void GDK::on_frame() {
     }
 
     ImGui::End();
+    // XXX not needed for now
     // ImGui::PopStyleColor();
     // ImGui::PopStyleVar(2);
-
-    // static bool IS_KEY_OPEN_MENU_DOWN = false;
-    // if ((GetAsyncKeyState(0xC0) & 0x8000) != 0) {
-    // if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
-    //     if (!IS_KEY_OPEN_MENU_DOWN) {
-    //         IS_KEY_OPEN_MENU_DOWN = true;
-    //         D3d11Hook::is_menu_visble = !D3d11Hook::is_menu_visble;
-    //     }
-    // } else if (IS_KEY_OPEN_MENU_DOWN) {
-    //     IS_KEY_OPEN_MENU_DOWN = false;
-    // }
 }
 
-void GDK::on_pawn(const SDK::APawn* const pawn) {
-    // ############ update ############
+void GDK::render_debug_window() {
+    ImGui::Begin("debug\tkey ~##debug window");
 
-    // const SDK::APlayerState* const player_state = pawn->PlayerState;
-    // only the player has SDK::APlayerState*
-    // if (player_state != nullptr) {
-    //     return false;
-    // }
+    ImGui::SetWindowSize(ImVec2(600.0, 400.0), ImGuiCond_FirstUseEver);
+    ImGui::SetWindowPos(ImVec2(600.0, 0.0), ImGuiCond_FirstUseEver);
 
-    const SDK::AController* const controller = pawn->Controller;
-    if (controller == nullptr) {
-        return;
+    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+
+    if (ImGui::Button("player##player")) {
+        // XXX maybe not necessary to check
+        dump_pawn_sockets(World::player_controller->Pawn);
     }
 
-    const SDK::ACharacter* const character = controller->Character;
-    if (character == nullptr) {
-        return;
+    for (const SDK::AActor* const actor : World::actors) {
+        if (actor == nullptr || !actor->IsA(SDK::EClassCastFlags::Pawn)) {
+            continue;
+        }
+
+        // XXX used only once
+        const SDK::APawn* const pawn = (SDK::APawn* const)actor;
+
+        const SDK::AController* const controller = pawn->Controller;
+        if (controller == nullptr) {
+            continue;
+        }
+
+        const SDK::ACharacter* const character = controller->Character;
+        if (character == nullptr) {
+            continue;
+        }
+
+        const SDK::USkeletalMeshComponent* const mesh = character->Mesh;
+        if (mesh == nullptr) {
+            continue;
+        }
+
+        const SDK::FVector location_3d = pawn->K2_GetActorLocation();
+        SDK::FVector2D location_2d = {};
+
+        if (!World::player_controller->ProjectWorldLocationToScreen(
+                location_3d,
+                &location_2d,
+                false
+            )) {
+            continue;
+        }
+
+        if (!is_on_screen({location_2d.X, location_2d.Y})) {
+            continue;
+        }
+
+        std::string pawn_name = pawn->GetName();
+
+        draw_list->AddText(
+            ImVec2(location_2d.X, location_2d.Y),
+            IM_COL32_WHITE,
+            pawn_name.c_str()
+        );
+
+        if (ImGui::Button(pawn_name.c_str())) {
+            dump_pawn_sockets(pawn);
+        }
     }
 
-    const SDK::USkeletalMeshComponent* const mesh = character->Mesh;
-    if (mesh == nullptr) {
-        return;
-    }
-
-    const SDK::TArray<class SDK::FName> socket_names =
-        mesh->GetAllSocketNames();
-    if (socket_names.IsValid() == false) {
-        return;
-    }
-
-    if (is_rendering_box_2d) {
-        GDK::render_box_2d(pawn);
-    }
-
-    if (is_rendering_box_3d) {
-        GDK::render_box_3d(pawn);
-    }
-
-    if (is_rendering_socket_names) {
-        GDK::render_socket_names(pawn);
-    }
-
-    if (is_rendering_socket_indices) {
-        GDK::render_socket_indices(pawn);
-    }
-
-    if (is_rendering_bones) {
-        GDK::render_bones(pawn);
-    }
-
-    if (is_rendering_distance) {
-        GDK::render_distance(pawn);
-    }
+    ImGui::End();
 }
 
-void GDK::render_box_2d(const SDK::APawn* const pawn) {
-    SDK::FVector pawn_world_location = pawn->K2_GetActorLocation(),
+void GDK::render_game_state() {
+    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+
+    draw_list->AddText(
+        {0, 0},
+        IM_COL32_WHITE,
+        std::to_string(World::game_state->GetGameTimeSinceCreation())
+            .c_str()
+    );
+
+    draw_list->AddText(
+        {0, 50},
+        IM_COL32_WHITE,
+        World::game_state->GetFullName().c_str()
+    );
+
+    draw_list->AddText(
+        {0, 100},
+        IM_COL32_WHITE,
+        World::persistent_level->GetFullName().c_str()
+    );
+}
+
+void GDK::render_box_2d() {
+    SDK::FVector pawn_world_location = Pawn::pawn->K2_GetActorLocation(),
                  pawn_world_location_origin = {},
                  pawn_world_location_extent {};
 
@@ -338,7 +308,7 @@ void GDK::render_box_2d(const SDK::APawn* const pawn) {
                    pawn_screen_location_head = {},
                    pawn_screen_location_foot = {};
 
-    pawn->GetActorBounds(
+    Pawn::pawn->GetActorBounds(
         true,
         &pawn_world_location_origin,
         &pawn_world_location_extent,
@@ -348,34 +318,31 @@ void GDK::render_box_2d(const SDK::APawn* const pawn) {
     SDK::FVector pawn_world_extent =
         {35.f, 35.f, pawn_world_location_extent.Z};
 
-    if (GDK::player_controller->ProjectWorldLocationToScreen(
+    if (!World::player_controller->ProjectWorldLocationToScreen(
             pawn_world_location,
             &pawn_screen_location,
             false
-        )
-        == false) {
+        )) {
         return;
     }
 
-    if (GDK::player_controller->ProjectWorldLocationToScreen(
+    if (!World::player_controller->ProjectWorldLocationToScreen(
             {pawn_world_location.X,
              pawn_world_location.Y,
              pawn_world_location.Z + pawn_world_location_extent.Z},
             &pawn_screen_location_head,
             false
-        )
-        == false) {
+        )) {
         return;
     }
 
-    if (GDK::player_controller->ProjectWorldLocationToScreen(
+    if (!World::player_controller->ProjectWorldLocationToScreen(
             {pawn_world_location.X,
              pawn_world_location.Y,
              pawn_world_location.Z - pawn_world_location_extent.Z},
             &pawn_screen_location_foot,
             false
-        )
-        == false) {
+        )) {
         return;
     }
 
@@ -395,101 +362,117 @@ void GDK::render_box_2d(const SDK::APawn* const pawn) {
     );
 }
 
-void GDK::render_box_3d(const SDK::APawn* const pawn) {
-    SDK::FVector pawn_origin = {};
-    SDK::FVector pawn_box_extent {};
+void GDK::render_box_3d() {
+    SDK::FVector pawn_origin_3d = {};
+    SDK::FVector pawn_box_extent_3d {};
 
-    pawn->GetActorBounds(true, &pawn_origin, &pawn_box_extent, false);
+    Pawn::pawn->GetActorBounds(
+        true,
+        &pawn_origin_3d,
+        &pawn_box_extent_3d,
+        false
+    );
 
-    pawn_box_extent = {35.f, 35.f, pawn_box_extent.Z};
+    pawn_box_extent_3d = {35.f, 35.f, pawn_box_extent_3d.Z};
 
-    std::vector<SDK::FVector> world_locations(8);
-    std::vector<ImVec2> screen_locations(8);
+    std::vector<SDK::FVector> world_locations_3d(8);
+    std::vector<ImVec2> screen_locations_2d(8);
 
-    world_locations[0] = pawn_origin - pawn_box_extent;
-    world_locations[1] = pawn_origin
-        + SDK::FVector(pawn_box_extent.X,
-                       -pawn_box_extent.Y,
-                       -pawn_box_extent.Z);
-    world_locations[2] = pawn_origin
-        + SDK::FVector(pawn_box_extent.X,
-                       pawn_box_extent.Y,
-                       -pawn_box_extent.Z);
-    world_locations[3] = pawn_origin
-        + SDK::FVector(-pawn_box_extent.X,
-                       pawn_box_extent.Y,
-                       -pawn_box_extent.Z);
+    world_locations_3d[0] = pawn_origin_3d - pawn_box_extent_3d;
 
-    world_locations[4] =
-        world_locations[0] + SDK::FVector(0, 0, 2 * pawn_box_extent.Z);
-    world_locations[5] =
-        world_locations[1] + SDK::FVector(0, 0, 2 * pawn_box_extent.Z);
-    world_locations[6] =
-        world_locations[2] + SDK::FVector(0, 0, 2 * pawn_box_extent.Z);
-    world_locations[7] =
-        world_locations[3] + SDK::FVector(0, 0, 2 * pawn_box_extent.Z);
+    world_locations_3d[1] = pawn_origin_3d
+        + SDK::FVector(pawn_box_extent_3d.X,
+                       -pawn_box_extent_3d.Y,
+                       -pawn_box_extent_3d.Z);
+
+    world_locations_3d[2] = pawn_origin_3d
+        + SDK::FVector(pawn_box_extent_3d.X,
+                       pawn_box_extent_3d.Y,
+                       -pawn_box_extent_3d.Z);
+
+    world_locations_3d[3] = pawn_origin_3d
+        + SDK::FVector(-pawn_box_extent_3d.X,
+                       pawn_box_extent_3d.Y,
+                       -pawn_box_extent_3d.Z);
+
+    world_locations_3d[4] = world_locations_3d[0]
+        + SDK::FVector(0, 0, 2 * pawn_box_extent_3d.Z);
+
+    world_locations_3d[5] = world_locations_3d[1]
+        + SDK::FVector(0, 0, 2 * pawn_box_extent_3d.Z);
+
+    world_locations_3d[6] = world_locations_3d[2]
+        + SDK::FVector(0, 0, 2 * pawn_box_extent_3d.Z);
+
+    world_locations_3d[7] = world_locations_3d[3]
+        + SDK::FVector(0, 0, 2 * pawn_box_extent_3d.Z);
 
     for (int i = 0; i < 8; ++i) {
-        SDK::FVector2D screen_location;
-        if (player_controller->ProjectWorldLocationToScreen(
-                world_locations[i],
-                &screen_location,
+        SDK::FVector2D screen_location_2d = {};
+
+        if (!World::player_controller->ProjectWorldLocationToScreen(
+                world_locations_3d[i],
+                &screen_location_2d,
                 false
             )) {
-            screen_locations[i] =
-                ImVec2(screen_location.X, screen_location.Y);
+            continue;
         }
+
+        screen_locations_2d[i] =
+            ImVec2(screen_location_2d.X, screen_location_2d.Y);
     }
 
-    ImDrawList* DrawList = ImGui::GetForegroundDrawList();
+    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+
     for (int i = 0; i < 4; ++i) {
-        if (is_on_screen(screen_locations[i])
-            && is_on_screen(screen_locations[(i + 1) % 4])) {
-            DrawList->AddLine(
-                screen_locations[i],
-                screen_locations[(i + 1) % 4],
+        if (is_on_screen(screen_locations_2d[i])
+            && is_on_screen(screen_locations_2d[(i + 1) % 4])) {
+            draw_list->AddLine(
+                screen_locations_2d[i],
+                screen_locations_2d[(i + 1) % 4],
                 IM_COL32_WHITE
             );
         }
-        if (is_on_screen(screen_locations[i + 4])
-            && is_on_screen(screen_locations[(i + 1) % 4 + 4])) {
-            DrawList->AddLine(
-                screen_locations[i + 4],
-                screen_locations[(i + 1) % 4 + 4],
+
+        if (is_on_screen(screen_locations_2d[i + 4])
+            && is_on_screen(screen_locations_2d[(i + 1) % 4 + 4])) {
+            draw_list->AddLine(
+                screen_locations_2d[i + 4],
+                screen_locations_2d[(i + 1) % 4 + 4],
                 IM_COL32_WHITE
             );
         }
-        if (is_on_screen(screen_locations[i])
-            && is_on_screen(screen_locations[i + 4])) {
-            DrawList->AddLine(
-                screen_locations[i],
-                screen_locations[i + 4],
+
+        if (is_on_screen(screen_locations_2d[i])
+            && is_on_screen(screen_locations_2d[i + 4])) {
+            draw_list->AddLine(
+                screen_locations_2d[i],
+                screen_locations_2d[i + 4],
                 IM_COL32_WHITE
             );
         }
     }
 }
 
-void GDK::render_socket_names(const SDK::APawn* const pawn) {
+void GDK::render_socket_names() {
     ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
 
-    const SDK::USkeletalMeshComponent* const mesh =
-        pawn->Controller->Character->Mesh;
-
-    for (const SDK::FName socket_name : mesh->GetAllSocketNames()) {
+    for (const SDK::FName socket_name : Pawn::socket_names) {
         const SDK::FVector location_3d =
-            mesh->GetSocketLocation(socket_name);
-        SDK::FVector2D location_2d;
-        if (GDK::player_controller->ProjectWorldLocationToScreen(
+            Pawn::mesh->GetSocketLocation(socket_name);
+
+        SDK::FVector2D location_2d = {};
+
+        if (!World::player_controller->ProjectWorldLocationToScreen(
                 location_3d,
                 &location_2d,
                 false
-            )
-            == false) {
+            )) {
             continue;
         }
 
-        int index = mesh->GetBoneIndex(socket_name);
+        int index = Pawn::mesh->GetBoneIndex(socket_name);
+
         draw_list->AddText(
             ImVec2(location_2d.X, location_2d.Y),
             IM_COL32_WHITE,
@@ -498,32 +481,29 @@ void GDK::render_socket_names(const SDK::APawn* const pawn) {
     }
 }
 
-void GDK::render_socket_indices(const SDK::APawn* const pawn) {
+void GDK::render_socket_indices() {
     ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
 
-    const SDK::USkeletalMeshComponent* const mesh =
-        pawn->Controller->Character->Mesh;
-
-    for (const SDK::FName socket_name : mesh->GetAllSocketNames()) {
+    for (const SDK::FName socket_name : Pawn::socket_names) {
         const SDK::FVector location_3d =
-            mesh->GetSocketLocation(socket_name);
+            Pawn::mesh->GetSocketLocation(socket_name);
 
         SDK::FVector2D location_2d = {};
 
-        if (GDK::player_controller->ProjectWorldLocationToScreen(
+        if (!World::player_controller->ProjectWorldLocationToScreen(
                 location_3d,
                 &location_2d,
                 false
-            )
-            == false) {
+            )) {
             continue;
         }
 
-        int socket_index = mesh->GetBoneIndex(socket_name);
+        int socket_index = Pawn::mesh->GetBoneIndex(socket_name);
 
-        if (socket_index > 11) {
-            continue;
-        }
+        // XXX too messy
+        // if (socket_index > 11) {
+        //     continue;
+        // }
 
         draw_list->AddText(
             ImVec2(location_2d.X, location_2d.Y),
@@ -533,76 +513,27 @@ void GDK::render_socket_indices(const SDK::APawn* const pawn) {
     }
 }
 
-const std::vector<std::vector<BonesCemeteryCreature>> BONE_LISTS = {
-    std::vector<BonesCemeteryCreature> {
-        BonesCemeteryCreature::Root_M,
-        BonesCemeteryCreature::Spine1_M,
-        BonesCemeteryCreature::Spine2_M,
-        BonesCemeteryCreature::Spine3_M,
-        BonesCemeteryCreature::Chest_M,
-        BonesCemeteryCreature::Neck_B_M,
-        BonesCemeteryCreature::Head_B_M
-    },
-    std::vector<BonesCemeteryCreature> {
-        BonesCemeteryCreature::Chest_M,
-        BonesCemeteryCreature::Scapula_L,
-        BonesCemeteryCreature::Shoulder_L,
-        BonesCemeteryCreature::ShoulderPart1_L,
-        BonesCemeteryCreature::Elbow_L,
-        BonesCemeteryCreature::ElbowPart1_L,
-        BonesCemeteryCreature::Wrist_L
-    },
-    std::vector<BonesCemeteryCreature> {
-        BonesCemeteryCreature::Chest_M,
-        BonesCemeteryCreature::Scapula_R,
-        BonesCemeteryCreature::Shoulder_R,
-        BonesCemeteryCreature::ShoulderPart1_R,
-        BonesCemeteryCreature::Elbow_R,
-        BonesCemeteryCreature::ElbowPart1_R,
-        BonesCemeteryCreature::Wrist_R
-    },
-    std::vector<BonesCemeteryCreature> {
-        BonesCemeteryCreature::Root_M,
-        BonesCemeteryCreature::Hip_L,
-        BonesCemeteryCreature::HipPart1_L,
-        BonesCemeteryCreature::Knee_L,
-        BonesCemeteryCreature::KneePart1_L,
-        BonesCemeteryCreature::Ankle_L,
-        BonesCemeteryCreature::Toes_L
-    },
-    std::vector<BonesCemeteryCreature> {
-        BonesCemeteryCreature::Root_M,
-        BonesCemeteryCreature::Hip_R,
-        BonesCemeteryCreature::HipPart1_R,
-        BonesCemeteryCreature::Knee_R,
-        BonesCemeteryCreature::KneePart1_R,
-        BonesCemeteryCreature::Ankle_R,
-        BonesCemeteryCreature::Toes_R
-    }
-};
-
-void GDK::render_bones(const SDK::APawn* const pawn) {
+void GDK::render_bones() {
     SDK::FVector previous_world_pos = {};
 
     SDK::FVector current_world_pos = {};
 
-    const SDK::USkeletalMeshComponent* const mesh =
-        pawn->Controller->Character->Mesh;
-
-    const int socket_names_count = mesh->GetAllSocketNames().Num();
+    const int socket_nums = Pawn::socket_names.Num();
 
     ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-    for (std::vector<BonesCemeteryCreature> bone_list : BONE_LISTS) {
+
+    for (std::vector<CemeteryCreatureBones> bone_list : BONE_LISTS) {
         previous_world_pos = {};
 
-        for (int bone_index : bone_list) {
+        for (CemeteryCreatureBones bone_index : bone_list) {
             // XXX  for unknown pawns, be cautious of index out of bounds issues
-            if (socket_names_count <= bone_index) {
+            if (bone_index >= socket_nums) {
                 continue;
             }
 
-            current_world_pos =
-                mesh->GetSocketLocation(mesh->GetBoneName(bone_index));
+            current_world_pos = Pawn::mesh->GetSocketLocation(
+                Pawn::mesh->GetBoneName(bone_index)
+            );
 
             if (previous_world_pos.IsZero()) {
                 previous_world_pos = current_world_pos;
@@ -613,21 +544,19 @@ void GDK::render_bones(const SDK::APawn* const pawn) {
 
             SDK::FVector2D current_screen_pos = {};
 
-            if (player_controller->ProjectWorldLocationToScreen(
+            if (!World::player_controller->ProjectWorldLocationToScreen(
                     previous_world_pos,
                     &previous_screen_pos,
                     false
-                )
-                == false) {
+                )) {
                 continue;
             }
 
-            if (player_controller->ProjectWorldLocationToScreen(
+            if (!World::player_controller->ProjectWorldLocationToScreen(
                     current_world_pos,
                     &current_screen_pos,
                     false
-                )
-                == false) {
+                )) {
                 continue;
             }
 
@@ -642,56 +571,55 @@ void GDK::render_bones(const SDK::APawn* const pawn) {
     }
 }
 
-void GDK::render_distance(const SDK::APawn* const pawn) {
-    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+void GDK::render_distance() {
+    const SDK::FVector world_location_3d =
+        Pawn::pawn->K2_GetActorLocation();
 
-    const SDK::FVector location_3d = pawn->K2_GetActorLocation();
+    SDK::FVector2D screen_location_2d = {};
 
-    SDK::FVector2D location_2d = {};
-
-    if (GDK::player_controller->ProjectWorldLocationToScreen(
-            location_3d,
-            &location_2d,
+    if (!World::player_controller->ProjectWorldLocationToScreen(
+            world_location_3d,
+            &screen_location_2d,
             false
-        )
-        == false) {
+        )) {
         return;
     }
 
-    float distance = player_pawn->GetDistanceTo(pawn);
+    float distance = World::player_controller->GetDistanceTo(Pawn::pawn);
 
-    draw_list->AddText(
-        ImVec2(location_2d.X, location_2d.Y),
+    ImGui::GetBackgroundDrawList()->AddText(
+        ImVec2(screen_location_2d.X, screen_location_2d.Y),
         IM_COL32_WHITE,
         std::to_string(distance).c_str()
     );
 }
 
-bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn, int file_logo) {
+bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn) {
     std::ofstream file(
-        std::format("{}_{}.txt", pawn->GetName(), file_logo),
+        std::format("{}.txt", pawn->GetName()),
         std::ios::trunc
     );
 
-    if (!file) {
+    if (!file.is_open()) {
         return false;
     }
 
-    file << "enum Bones : int {" << std::endl;
+    // XXX maybe not necessary to check
+    SDK::USkeletalMeshComponent* mesh = pawn->Controller->Character->Mesh;
 
-    const SDK::USkeletalMeshComponent* const mesh =
-        pawn->Controller->Character->Mesh;
+    file << "enum Bones : int {" << std::endl;
 
     for (const SDK::FName socket_name : mesh->GetAllSocketNames()) {
         const SDK::FVector location_3d =
             mesh->GetSocketLocation(socket_name);
-        SDK::FVector2D location_2d;
-        if (GDK::player_controller->ProjectWorldLocationToScreen(
+
+        SDK::FVector2D location_2d = {};
+
+        if (!World::player_controller->ProjectWorldLocationToScreen(
                 location_3d,
                 &location_2d,
                 false
-            )
-            == false) {
+            )) {
             continue;
         }
 
@@ -703,18 +631,96 @@ bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn, int file_logo) {
 
     file << "};" << std::endl;
 
+    file.close();
+
     return true;
 }
 
 bool GDK::is_on_screen(ImVec2 location) {
+    // XXX alternative, cuz not the best choice
     // int viewport_width = GetSystemMetrics(SM_CXSCREEN);
     // int viewport_height = GetSystemMetrics(SM_CYSCREEN);
 
     int viewport_width = {};
     int viewport_height = {};
 
-    player_controller->GetViewportSize(&viewport_width, &viewport_height);
+    World::player_controller->GetViewportSize(
+        &viewport_width,
+        &viewport_height
+    );
 
     return location.x < viewport_width && location.y < viewport_height
         && location.x > 0 && location.y > 0;
+}
+
+bool World::update() {
+    World::world = SDK::UWorld::GetWorld();
+    if (World::world == nullptr) {
+        return false;
+    }
+
+    World::game_instance = World::world->OwningGameInstance;
+    if (World::game_instance == nullptr) {
+        return false;
+    }
+
+    World::game_state = World::world->GameState;
+    if (World::game_state == nullptr) {
+        return false;
+    }
+
+    if (!World::game_instance->LocalPlayers.IsValid()) {
+        return false;
+    }
+
+    World::local_player = World::game_instance->LocalPlayers[0];
+    if (World::local_player == nullptr) {
+        return false;
+    }
+
+    World::player_controller = World::local_player->PlayerController;
+    if (World::player_controller == nullptr) {
+        return false;
+    }
+
+    World::player_character = World::player_controller->Character;
+    if (World::player_character == nullptr) {
+        return false;
+    }
+
+    World::persistent_level = World::world->PersistentLevel;
+    if (World::persistent_level == nullptr) {
+        return false;
+    }
+
+    World::actors = World::persistent_level->Actors;
+    if (!World::actors.IsValid()) {
+        return false;
+    }
+
+    return true;
+}
+
+bool Pawn::update() {
+    Pawn::controller = Pawn::pawn->Controller;
+    if (controller == nullptr) {
+        return false;
+    }
+
+    Pawn::character = Pawn::controller->Character;
+    if (character == nullptr) {
+        return false;
+    }
+
+    Pawn::mesh = Pawn::character->Mesh;
+    if (mesh == nullptr) {
+        return false;
+    }
+
+    Pawn::socket_names = Pawn::mesh->GetAllSocketNames();
+    if (!Pawn::socket_names.IsValid()) {
+        return false;
+    }
+
+    return true;
 }

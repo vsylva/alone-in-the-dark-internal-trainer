@@ -4,7 +4,7 @@
 // #include "../deps/ue_4_27_2_sdk/SDK.hpp"
 #include "../deps/ue_4_27_2_sdk/SDK/Engine_classes.hpp"
 
-enum BonesCemeteryCreature : int {
+enum CemeteryCreatureBones : int {
     Wrist_L_WeaponSocket = -1,
     HeadAim = -1,
     TorsoAim = -1,
@@ -316,31 +316,30 @@ enum BonesCemeteryCreature : int {
 
 // Game Development Kit
 class GDK {
+    friend class World;
+    friend class Pawn;
+
   private:
-    static void on_pawn(const SDK::APawn* const);
+    static void on_actors();
+    static void on_pawn();
 
-    static void render_box_2d(const SDK::APawn* const);
-    static void render_box_3d(const SDK::APawn* const);
-    static void render_socket_names(const SDK::APawn* const);
-    static void render_socket_indices(const SDK::APawn* const);
-    static void render_bones(const SDK::APawn* const);
-    static void render_distance(const SDK::APawn* const);
+    static void render_ui_window();
+    static void render_debug_window();
 
-    static bool dump_pawn_sockets(const SDK::APawn* const, const int);
+    static void render_game_state();
+
+    static void render_box_2d();
+    static void render_box_3d();
+    static void render_socket_names();
+    static void render_socket_indices();
+    static void render_bones();
+    static void render_distance();
+
+    static bool dump_pawn_sockets(const SDK::APawn* const);
     static bool is_on_screen(ImVec2);
 
-    static SDK::UWorld* world;
-    static SDK::UGameInstance* game_instance;
-    static SDK::AGameStateBase* game_state;
-    static SDK::ULocalPlayer* local_player;
-    static SDK::APlayerController* player_controller;
-    static SDK::APawn* player_pawn;
-    static SDK::APlayerCameraManager* player_camera_manager;
-    static SDK::ACharacter* player_character;
-    static SDK::UCharacterMovementComponent* player_character_movement;
-    static SDK::ULevel* persistent_level;
-    static SDK::TArray<class SDK::ULevel*> levels;
-    static SDK::TArray<class SDK::AActor*> actors;
+  private:
+    static std::vector<std::vector<CemeteryCreatureBones>> BONE_LISTS;
 
     static bool is_rendering_box_2d;
     static bool is_rendering_box_3d;
@@ -351,4 +350,35 @@ class GDK {
 
   public:
     static void on_frame();
+};
+
+class World {
+    friend class GDK;
+
+  protected:
+    static SDK::UWorld* world;
+    static SDK::UGameInstance* game_instance;
+    static SDK::AGameStateBase* game_state;
+    static SDK::ULocalPlayer* local_player;
+    static SDK::APlayerController* player_controller;
+    static SDK::ACharacter* player_character;
+    static SDK::ULevel* persistent_level;
+    static SDK::TArray<class SDK::AActor*> actors;
+
+  protected:
+    static bool update();
+};
+
+class Pawn {
+    friend class GDK;
+
+  protected:
+    static SDK::APawn* pawn;
+    static SDK::AController* controller;
+    static SDK::ACharacter* character;
+    static SDK::USkeletalMeshComponent* mesh;
+    static SDK::TArray<class SDK::FName> socket_names;
+
+  protected:
+    static bool update();
 };
