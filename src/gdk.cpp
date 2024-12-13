@@ -1,4 +1,4 @@
-#include "gdk.h"
+﻿#include "gdk.h"
 
 #include <format>
 #include <fstream>
@@ -66,13 +66,14 @@ bool GDK::is_rendering_bones = false;
 bool GDK::is_rendering_distance = false;
 bool GDK::is_rendering_bp_name = false;
 
-bool GDK::is_player_speed_up_walls_through = false;
+bool GDK::is_player_free_movement = false;
 
 SDK::UWorld* World::world = nullptr;
 SDK::UGameInstance* World::game_instance = nullptr;
 SDK::AGameStateBase* World::game_state = nullptr;
 SDK::ULocalPlayer* World::local_player = nullptr;
 SDK::APlayerController* World::player_controller = nullptr;
+SDK::APlayerCameraManager* World::player_camera_manager = nullptr;
 SDK::ACharacter* World::player_character = nullptr;
 SDK::ULevel* World::persistent_level = nullptr;
 SDK::TArray<class SDK::AActor*> World::actors = {};
@@ -94,9 +95,8 @@ void GDK::on_frame() {
 
     GDK::render_game_state();
 
-    if (ImGui::IsKeyDown(ImGuiKey_G)
-        && GDK::is_player_speed_up_walls_through) {
-        GDK::move_player_in_facing_direction();
+    if (ImGui::IsKeyDown(ImGuiKey_G) && GDK::is_player_free_movement) {
+        GDK::player_free_movement();
     }
 
     GDK::on_actors();
@@ -216,8 +216,8 @@ void GDK::render_ui_window() {
             );
 
             ImGui::Checkbox(
-                "(key G)speed up && walls through##is_player_speed_up_walls_through",
-                &GDK::is_player_speed_up_walls_through
+                "(key G)player_free_movement##is_player_free_movement",
+                &GDK::is_player_free_movement
             );
 
             ImGui::EndTabItem();
@@ -684,14 +684,17 @@ bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn) {
     return true;
 }
 
-void GDK::move_player_in_facing_direction() {
+void GDK::player_free_movement() {
     SDK::FVector player_location_3d =
         World::player_character->K2_GetActorLocation();
 
     SDK::FVector player_forward_3d =
-        World::player_character->GetActorForwardVector() * 10.0f;
+        World::player_camera_manager->GetActorForwardVector();
 
-    player_location_3d += player_forward_3d;
+    player_location_3d +=
+        {player_forward_3d.X * 10.0f,
+         player_forward_3d.Y * 10.0f,
+         player_forward_3d.Z * 15.f};
 
     World::player_character
         ->K2_SetActorLocation(player_location_3d, false, nullptr, true);
@@ -742,6 +745,12 @@ bool World::update() {
 
     World::player_controller = World::local_player->PlayerController;
     if (World::player_controller == nullptr) {
+        return false;
+    }
+
+    World::player_camera_manager =
+        World::player_controller->PlayerCameraManager;
+    if (World::player_camera_manager == nullptr) {
         return false;
     }
 

@@ -452,7 +452,7 @@ class GDK {
     static bool dump_pawn_sockets(const SDK::APawn* const);
     static bool is_on_screen(ImVec2);
 
-    static void move_player_in_facing_direction();
+    static void player_free_movement();
 
   private:
     static const std::vector<
@@ -467,7 +467,7 @@ class GDK {
     static bool is_rendering_distance;
     static bool is_rendering_bp_name;
 
-    static bool is_player_speed_up_walls_through;
+    static bool is_player_free_movement;
 
   public:
     static void on_frame();
@@ -482,6 +482,7 @@ class World {
     static SDK::AGameStateBase* game_state;
     static SDK::ULocalPlayer* local_player;
     static SDK::APlayerController* player_controller;
+    static SDK::APlayerCameraManager* player_camera_manager;
     static SDK::ACharacter* player_character;
     static SDK::ULevel* persistent_level;
     static SDK::TArray<class SDK::AActor*> actors;
