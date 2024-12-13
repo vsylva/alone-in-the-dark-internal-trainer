@@ -4,6 +4,7 @@
 // #include "../deps/ue_4_27_2_sdk/SDK.hpp"
 #include "../deps/ue_4_27_2_sdk/SDK/Engine_classes.hpp"
 
+namespace CemeteryCreatureBones {
 enum CemeteryCreatureBones : int {
     Wrist_L_WeaponSocket = -1,
     HeadAim = -1,
@@ -313,6 +314,118 @@ enum CemeteryCreatureBones : int {
     LowerTorsoArm_IK_L = 302,
     LowerTorsoArm_IK_R = 303,
 };
+}
+
+namespace MobBurrowerBones {
+
+enum Bones : int {
+    HeadAim = -1,
+    UnrealRoot = 0,
+    ik_foot_root = 1,
+    ik_foot_R = 2,
+    ik_foot_L = 3,
+    ik_LowerArm_l = 4,
+    ik_LowerArm_r = 5,
+    Root_M = 6,
+    Spine1_M = 7,
+    Spine2_M = 8,
+    Spine3_M = 9,
+    Spine4_M = 10,
+    Spine5_M = 11,
+    Spine6_M = 12,
+    Spine7_M = 13,
+    Tail1_M = 14,
+    Tail2_M = 15,
+    Tail3_M = 16,
+    Tail4_M = 17,
+    Tail5_M = 18,
+    Tail6_M = 19,
+    Tail7_M = 20,
+    Tail8_M = 21,
+    TailNub_M = 22,
+    TailSpike1_R = 23,
+    TailSpike2_R = 24,
+    TailSpike1_L = 25,
+    TailSpike2_L = 26,
+    TailBone1_M = 27,
+    TailBone2_M = 28,
+    Adj_Belly_M = 29,
+    Adj_Belly_Nub_M = 30,
+    Neck_M = 31,
+    Head_M = 32,
+    HeadNub_M = 33,
+    Mandible1_R = 34,
+    Mandible2_R = 35,
+    Mandible3_R = 36,
+    Mandible4_R = 37,
+    Mandible5_R = 38,
+    Mandible6_R = 39,
+    Mouth2_R = 40,
+    Mouth2Nub_R = 41,
+    Mouth3_R = 42,
+    Mouth3Nub_R = 43,
+    Mouth4_R = 44,
+    Mouth4Nub_R = 45,
+    Mouth1_R = 46,
+    Mouth1Nub_R = 47,
+    Mandible1_L = 48,
+    Mandible2_L = 49,
+    Mandible3_L = 50,
+    Mandible4_L = 51,
+    Mandible5_L = 52,
+    Mandible6_L = 53,
+    Mouth2_L = 54,
+    Mouth2Nub_L = 55,
+    Mouth3_L = 56,
+    Mouth3Nub_L = 57,
+    Mouth4_L = 58,
+    Mouth4Nub_L = 59,
+    Scapula_R = 60,
+    Shoulder_R = 61,
+    lowerarm_r = 62,
+    hand_r = 63,
+    HandEnd_R = 64,
+    Toe2_1_R = 65,
+    Toe2_2_R = 66,
+    Toe2_3_R = 67,
+    Toe1_1_R = 68,
+    Toe1_2_R = 69,
+    Toe1_3_R = 70,
+    Toe3_1_R = 71,
+    Toe3_2_R = 72,
+    Toe3_3_R = 73,
+    Adj_Shoulderspike_R = 74,
+    Adj_Shoulderspike_Nub_R = 75,
+    Adj_Shoulder_R = 76,
+    Adj_Shoulder_Nub_R = 77,
+    Dyn_ArmSkin_R = 78,
+    Dyn_ArmSkin_Nub_R = 79,
+    Scapula_L = 80,
+    Shoulder_L = 81,
+    lowerarm_l = 82,
+    hand_l = 83,
+    HandEnd_L = 84,
+    Toe2_1_L = 85,
+    Toe2_2_L = 86,
+    Toe2_3_L = 87,
+    Toe1_1_L = 88,
+    Toe1_2_L = 89,
+    Toe1_3_L = 90,
+    Toe3_1_L = 91,
+    Toe3_2_L = 92,
+    Toe3_3_L = 93,
+    Adj_Shoulderspike_L = 94,
+    Adj_Shoulderspike_Nub_L = 95,
+    Adj_Shoulder_L = 96,
+    Adj_Shoulder_Nub_L = 97,
+    Dyn_ArmSkin_L = 98,
+    Dyn_ArmSkin_Nub_L = 99,
+    Adj_Chest_R = 100,
+    Adj_Chest_Nub_R = 101,
+    Adj_Chest_L = 102,
+    Adj_Chest_Nub_L = 103,
+};
+}
 
 // Game Development Kit
 class GDK {
@@ -334,12 +447,17 @@ class GDK {
     static void render_socket_indices();
     static void render_bones();
     static void render_distance();
+    static void render_bp_name();
 
     static bool dump_pawn_sockets(const SDK::APawn* const);
     static bool is_on_screen(ImVec2);
 
+    static void move_player_in_facing_direction();
+
   private:
-    static std::vector<std::vector<CemeteryCreatureBones>> BONE_LISTS;
+    static const std::vector<
+        std::vector<CemeteryCreatureBones::CemeteryCreatureBones>>
+        CEMETERY_CREATURE_BONE_LISTS;
 
     static bool is_rendering_box_2d;
     static bool is_rendering_box_3d;
@@ -347,6 +465,9 @@ class GDK {
     static bool is_rendering_socket_indices;
     static bool is_rendering_bones;
     static bool is_rendering_distance;
+    static bool is_rendering_bp_name;
+
+    static bool is_player_speed_up_walls_through;
 
   public:
     static void on_frame();

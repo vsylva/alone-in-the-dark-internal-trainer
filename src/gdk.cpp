@@ -8,52 +8,54 @@
 
 #include "d3d11hook.h"
 
-std::vector<std::vector<CemeteryCreatureBones>> GDK::BONE_LISTS = {
-    std::vector<CemeteryCreatureBones> {
-        CemeteryCreatureBones::Root_M,
-        CemeteryCreatureBones::Spine1_M,
-        CemeteryCreatureBones::Spine2_M,
-        CemeteryCreatureBones::Spine3_M,
-        CemeteryCreatureBones::Chest_M,
-        CemeteryCreatureBones::Neck_B_M,
-        CemeteryCreatureBones::Head_B_M
-    },
-    std::vector<CemeteryCreatureBones> {
-        CemeteryCreatureBones::Chest_M,
-        CemeteryCreatureBones::Scapula_L,
-        CemeteryCreatureBones::Shoulder_L,
-        CemeteryCreatureBones::ShoulderPart1_L,
-        CemeteryCreatureBones::Elbow_L,
-        CemeteryCreatureBones::ElbowPart1_L,
-        CemeteryCreatureBones::Wrist_L
-    },
-    std::vector<CemeteryCreatureBones> {
-        CemeteryCreatureBones::Chest_M,
-        CemeteryCreatureBones::Scapula_R,
-        CemeteryCreatureBones::Shoulder_R,
-        CemeteryCreatureBones::ShoulderPart1_R,
-        CemeteryCreatureBones::Elbow_R,
-        CemeteryCreatureBones::ElbowPart1_R,
-        CemeteryCreatureBones::Wrist_R
-    },
-    std::vector<CemeteryCreatureBones> {
-        CemeteryCreatureBones::Root_M,
-        CemeteryCreatureBones::Hip_L,
-        CemeteryCreatureBones::HipPart1_L,
-        CemeteryCreatureBones::Knee_L,
-        CemeteryCreatureBones::KneePart1_L,
-        CemeteryCreatureBones::Ankle_L,
-        CemeteryCreatureBones::Toes_L
-    },
-    std::vector<CemeteryCreatureBones> {
-        CemeteryCreatureBones::Root_M,
-        CemeteryCreatureBones::Hip_R,
-        CemeteryCreatureBones::HipPart1_R,
-        CemeteryCreatureBones::Knee_R,
-        CemeteryCreatureBones::KneePart1_R,
-        CemeteryCreatureBones::Ankle_R,
-        CemeteryCreatureBones::Toes_R
-    }
+const std::vector<
+    std::vector<CemeteryCreatureBones::CemeteryCreatureBones>>
+    GDK::CEMETERY_CREATURE_BONE_LISTS = {
+        std::vector<CemeteryCreatureBones::CemeteryCreatureBones> {
+            CemeteryCreatureBones::Root_M,
+            CemeteryCreatureBones::Spine1_M,
+            CemeteryCreatureBones::Spine2_M,
+            CemeteryCreatureBones::Spine3_M,
+            CemeteryCreatureBones::Chest_M,
+            CemeteryCreatureBones::Neck_B_M,
+            CemeteryCreatureBones::Head_B_M
+        },
+        std::vector<CemeteryCreatureBones::CemeteryCreatureBones> {
+            CemeteryCreatureBones::Chest_M,
+            CemeteryCreatureBones::Scapula_L,
+            CemeteryCreatureBones::Shoulder_L,
+            CemeteryCreatureBones::ShoulderPart1_L,
+            CemeteryCreatureBones::Elbow_L,
+            CemeteryCreatureBones::ElbowPart1_L,
+            CemeteryCreatureBones::Wrist_L
+        },
+        std::vector<CemeteryCreatureBones::CemeteryCreatureBones> {
+            CemeteryCreatureBones::Chest_M,
+            CemeteryCreatureBones::Scapula_R,
+            CemeteryCreatureBones::Shoulder_R,
+            CemeteryCreatureBones::ShoulderPart1_R,
+            CemeteryCreatureBones::Elbow_R,
+            CemeteryCreatureBones::ElbowPart1_R,
+            CemeteryCreatureBones::Wrist_R
+        },
+        std::vector<CemeteryCreatureBones::CemeteryCreatureBones> {
+            CemeteryCreatureBones::Root_M,
+            CemeteryCreatureBones::Hip_L,
+            CemeteryCreatureBones::HipPart1_L,
+            CemeteryCreatureBones::Knee_L,
+            CemeteryCreatureBones::KneePart1_L,
+            CemeteryCreatureBones::Ankle_L,
+            CemeteryCreatureBones::Toes_L
+        },
+        std::vector<CemeteryCreatureBones::CemeteryCreatureBones> {
+            CemeteryCreatureBones::Root_M,
+            CemeteryCreatureBones::Hip_R,
+            CemeteryCreatureBones::HipPart1_R,
+            CemeteryCreatureBones::Knee_R,
+            CemeteryCreatureBones::KneePart1_R,
+            CemeteryCreatureBones::Ankle_R,
+            CemeteryCreatureBones::Toes_R
+        }
 };
 
 bool GDK::is_rendering_box_2d = false;
@@ -62,6 +64,9 @@ bool GDK::is_rendering_socket_names = false;
 bool GDK::is_rendering_socket_indices = false;
 bool GDK::is_rendering_bones = false;
 bool GDK::is_rendering_distance = false;
+bool GDK::is_rendering_bp_name = false;
+
+bool GDK::is_player_speed_up_walls_through = false;
 
 SDK::UWorld* World::world = nullptr;
 SDK::UGameInstance* World::game_instance = nullptr;
@@ -87,16 +92,21 @@ void GDK::on_frame() {
         return;
     }
 
-    render_game_state();
+    GDK::render_game_state();
 
-    on_actors();
+    if (ImGui::IsKeyDown(ImGuiKey_G)
+        && GDK::is_player_speed_up_walls_through) {
+        GDK::move_player_in_facing_direction();
+    }
+
+    GDK::on_actors();
 
     if (!D3d11Hook::is_menu_visible) {
         return;
     }
 
-    render_ui_window();
-    render_debug_window();
+    GDK::render_ui_window();
+    GDK::render_debug_window();
 
     // XXX alternative, cuz not the best choice
     // static bool IS_KEY_OPEN_MENU_DOWN = false;
@@ -157,6 +167,10 @@ void GDK::on_pawn() {
     if (GDK::is_rendering_distance) {
         GDK::render_distance();
     }
+
+    if (GDK::is_rendering_bp_name) {
+        GDK::render_bp_name();
+    }
 }
 
 void GDK::render_ui_window() {
@@ -196,6 +210,15 @@ void GDK::render_ui_window() {
                 "distance##is_rendering_flags",
                 &GDK::is_rendering_distance
             );
+            ImGui::Checkbox(
+                "bp name##is_rendering_bp_name",
+                &GDK::is_rendering_bp_name
+            );
+
+            ImGui::Checkbox(
+                "(key G)speed up && walls through##is_player_speed_up_walls_through",
+                &GDK::is_player_speed_up_walls_through
+            );
 
             ImGui::EndTabItem();
         }
@@ -210,7 +233,7 @@ void GDK::render_ui_window() {
 }
 
 void GDK::render_debug_window() {
-    ImGui::Begin("debug\tkey ~##debug window");
+    ImGui::Begin("bone list dumper\tkey ~##debug window");
 
     ImGui::SetWindowSize(ImVec2(600.0, 400.0), ImGuiCond_FirstUseEver);
     ImGui::SetWindowPos(ImVec2(600.0, 0.0), ImGuiCond_FirstUseEver);
@@ -300,61 +323,61 @@ void GDK::render_game_state() {
 }
 
 void GDK::render_box_2d() {
-    SDK::FVector pawn_world_location = Pawn::pawn->K2_GetActorLocation(),
-                 pawn_world_location_origin = {},
-                 pawn_world_location_extent {};
+    SDK::FVector pawn_world_location_3d =
+                     Pawn::pawn->K2_GetActorLocation(),
+                 pawn_origin_3d = {}, pawn_box_extent_3d {};
 
-    SDK::FVector2D pawn_screen_location = {},
-                   pawn_screen_location_head = {},
-                   pawn_screen_location_foot = {};
+    SDK::FVector2D pawn_screen_location_2d = {},
+                   pawn_screen_location_2d_head = {},
+                   pawn_screen_location_2d_foot = {};
 
     Pawn::pawn->GetActorBounds(
         true,
-        &pawn_world_location_origin,
-        &pawn_world_location_extent,
+        &pawn_origin_3d,
+        &pawn_box_extent_3d,
         false
     );
 
-    SDK::FVector pawn_world_extent =
-        {35.f, 35.f, pawn_world_location_extent.Z};
+    SDK::FVector pawn_world_extent = {35.f, 35.f, pawn_box_extent_3d.Z};
 
     if (!World::player_controller->ProjectWorldLocationToScreen(
-            pawn_world_location,
-            &pawn_screen_location,
+            pawn_world_location_3d,
+            &pawn_screen_location_2d,
             false
         )) {
         return;
     }
 
     if (!World::player_controller->ProjectWorldLocationToScreen(
-            {pawn_world_location.X,
-             pawn_world_location.Y,
-             pawn_world_location.Z + pawn_world_location_extent.Z},
-            &pawn_screen_location_head,
+            {pawn_world_location_3d.X,
+             pawn_world_location_3d.Y,
+             pawn_world_location_3d.Z + pawn_box_extent_3d.Z},
+            &pawn_screen_location_2d_head,
             false
         )) {
         return;
     }
 
     if (!World::player_controller->ProjectWorldLocationToScreen(
-            {pawn_world_location.X,
-             pawn_world_location.Y,
-             pawn_world_location.Z - pawn_world_location_extent.Z},
-            &pawn_screen_location_foot,
+            {pawn_world_location_3d.X,
+             pawn_world_location_3d.Y,
+             pawn_world_location_3d.Z - pawn_box_extent_3d.Z},
+            &pawn_screen_location_2d_foot,
             false
         )) {
         return;
     }
 
     const float pawn_height =
-        abs(pawn_screen_location_foot.Y - pawn_screen_location_head.Y);
+        abs(pawn_screen_location_2d_foot.Y - pawn_screen_location_2d_head.Y
+        );
     const float pawn_width = pawn_height * 0.4f;
 
     ImGui::GetBackgroundDrawList()->AddRect(
-        {pawn_screen_location_head.X - pawn_width * 0.5f,
-         pawn_screen_location_head.Y},
-        {pawn_screen_location_head.X + pawn_width * 0.5f,
-         pawn_screen_location_foot.Y},
+        {pawn_screen_location_2d_head.X - pawn_width * 0.5f,
+         pawn_screen_location_2d_head.Y},
+        {pawn_screen_location_2d_head.X + pawn_width * 0.5f,
+         pawn_screen_location_2d_foot.Y},
         IM_COL32_WHITE,
         0.f,
         15,
@@ -522,17 +545,21 @@ void GDK::render_bones() {
 
     ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
 
-    for (std::vector<CemeteryCreatureBones> bone_list : BONE_LISTS) {
+    for (std::vector<CemeteryCreatureBones::CemeteryCreatureBones>
+             cemeteryc_reature_bone_list : CEMETERY_CREATURE_BONE_LISTS) {
         previous_world_pos = {};
 
-        for (CemeteryCreatureBones bone_index : bone_list) {
+        for (CemeteryCreatureBones::CemeteryCreatureBones
+                 cemeteryc_reature_bone_index :
+             cemeteryc_reature_bone_list) {
             // XXX  for unknown pawns, be cautious of index out of bounds issues
-            if (bone_index >= socket_nums) {
-                continue;
+            if (cemeteryc_reature_bone_index >= socket_nums) {
+                GDK::render_bp_name();
+                return;
             }
 
             current_world_pos = Pawn::mesh->GetSocketLocation(
-                Pawn::mesh->GetBoneName(bone_index)
+                Pawn::mesh->GetBoneName(cemeteryc_reature_bone_index)
             );
 
             if (previous_world_pos.IsZero()) {
@@ -594,6 +621,27 @@ void GDK::render_distance() {
     );
 }
 
+void GDK::render_bp_name() {
+    const SDK::FVector world_location_3d =
+        Pawn::pawn->K2_GetActorLocation();
+
+    SDK::FVector2D screen_location_2d = {};
+
+    if (!World::player_controller->ProjectWorldLocationToScreen(
+            world_location_3d,
+            &screen_location_2d,
+            false
+        )) {
+        return;
+    }
+
+    ImGui::GetBackgroundDrawList()->AddText(
+        ImVec2(screen_location_2d.X, screen_location_2d.Y),
+        IM_COL32_WHITE,
+        Pawn::pawn->GetName().c_str()
+    );
+}
+
 bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn) {
     std::ofstream file(
         std::format("{}.txt", pawn->GetName()),
@@ -636,7 +684,20 @@ bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn) {
     return true;
 }
 
-bool GDK::is_on_screen(ImVec2 location) {
+void GDK::move_player_in_facing_direction() {
+    SDK::FVector player_location_3d =
+        World::player_character->K2_GetActorLocation();
+
+    SDK::FVector player_forward_3d =
+        World::player_character->GetActorForwardVector() * 10.0f;
+
+    player_location_3d += player_forward_3d;
+
+    World::player_character
+        ->K2_SetActorLocation(player_location_3d, false, nullptr, true);
+}
+
+bool GDK::is_on_screen(ImVec2 location_2d) {
     // XXX alternative, cuz not the best choice
     // int viewport_width = GetSystemMetrics(SM_CXSCREEN);
     // int viewport_height = GetSystemMetrics(SM_CYSCREEN);
@@ -649,8 +710,9 @@ bool GDK::is_on_screen(ImVec2 location) {
         &viewport_height
     );
 
-    return location.x < viewport_width && location.y < viewport_height
-        && location.x > 0 && location.y > 0;
+    return location_2d.x < viewport_width
+        && location_2d.y < viewport_height && location_2d.x > 0
+        && location_2d.y > 0;
 }
 
 bool World::update() {
