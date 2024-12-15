@@ -95,6 +95,7 @@ void GDK::on_frame() {
 
     GDK::render_game_state();
 
+    // HACK fly
     if (ImGui::IsKeyDown(ImGuiKey_G) && GDK::is_player_free_movement) {
         GDK::player_free_movement();
     }
@@ -106,7 +107,9 @@ void GDK::on_frame() {
     }
 
     GDK::render_ui_window();
+#ifdef _DEBUG
     GDK::render_debug_window();
+#endif
 
     // XXX alternative, cuz not the best choice
     // static bool IS_KEY_OPEN_MENU_DOWN = false;
@@ -128,6 +131,21 @@ void GDK::on_actors() {
         }
 
         Pawn::pawn = (SDK::APawn* const)actor;
+
+        SDK::FVector world_location_3d = Pawn::pawn->K2_GetActorLocation();
+        SDK::FVector2D world_location_2d = {};
+        if (!World::player_controller->ProjectWorldLocationToScreen(
+                world_location_3d,
+                &world_location_2d,
+                false
+            )) {
+            continue;
+        };
+
+        if (!GDK::is_on_screen({world_location_2d.X, world_location_2d.Y}
+            )) {
+            continue;
+        }
 
         float distance =
             World::player_character->GetDistanceTo(Pawn::pawn);
@@ -152,14 +170,6 @@ void GDK::on_pawn() {
         GDK::render_box_3d();
     }
 
-    if (GDK::is_rendering_socket_names) {
-        GDK::render_socket_names();
-    }
-
-    if (GDK::is_rendering_socket_indices) {
-        GDK::render_socket_indices();
-    }
-
     if (GDK::is_rendering_bones) {
         GDK::render_bones();
     }
@@ -168,9 +178,19 @@ void GDK::on_pawn() {
         GDK::render_distance();
     }
 
+#ifdef _DEBUG
     if (GDK::is_rendering_bp_name) {
         GDK::render_bp_name();
     }
+
+    if (GDK::is_rendering_socket_names) {
+        GDK::render_socket_names();
+    }
+
+    if (GDK::is_rendering_socket_indices) {
+        GDK::render_socket_indices();
+    }
+#endif
 }
 
 void GDK::render_ui_window() {
@@ -253,6 +273,20 @@ void GDK::render_debug_window() {
         // XXX used only once
         const SDK::APawn* const pawn = (SDK::APawn* const)actor;
 
+        const SDK::FVector location_3d = pawn->K2_GetActorLocation();
+        SDK::FVector2D location_2d = {};
+        if (!World::player_controller->ProjectWorldLocationToScreen(
+                location_3d,
+                &location_2d,
+                false
+            )) {
+            continue;
+        }
+
+        if (!is_on_screen({location_2d.X, location_2d.Y})) {
+            continue;
+        }
+
         const SDK::AController* const controller = pawn->Controller;
         if (controller == nullptr) {
             continue;
@@ -265,21 +299,6 @@ void GDK::render_debug_window() {
 
         const SDK::USkeletalMeshComponent* const mesh = character->Mesh;
         if (mesh == nullptr) {
-            continue;
-        }
-
-        const SDK::FVector location_3d = pawn->K2_GetActorLocation();
-        SDK::FVector2D location_2d = {};
-
-        if (!World::player_controller->ProjectWorldLocationToScreen(
-                location_3d,
-                &location_2d,
-                false
-            )) {
-            continue;
-        }
-
-        if (!is_on_screen({location_2d.X, location_2d.Y})) {
             continue;
         }
 
@@ -309,6 +328,7 @@ void GDK::render_game_state() {
             .c_str()
     );
 
+#ifdef _DEBUG
     draw_list->AddText(
         {0, 50},
         IM_COL32_WHITE,
@@ -320,6 +340,7 @@ void GDK::render_game_state() {
         IM_COL32_WHITE,
         World::persistent_level->GetFullName().c_str()
     );
+#endif
 }
 
 void GDK::render_box_2d() {
@@ -477,65 +498,6 @@ void GDK::render_box_3d() {
     }
 }
 
-void GDK::render_socket_names() {
-    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-
-    for (const SDK::FName socket_name : Pawn::socket_names) {
-        const SDK::FVector location_3d =
-            Pawn::mesh->GetSocketLocation(socket_name);
-
-        SDK::FVector2D location_2d = {};
-
-        if (!World::player_controller->ProjectWorldLocationToScreen(
-                location_3d,
-                &location_2d,
-                false
-            )) {
-            continue;
-        }
-
-        int index = Pawn::mesh->GetBoneIndex(socket_name);
-
-        draw_list->AddText(
-            ImVec2(location_2d.X, location_2d.Y),
-            IM_COL32_WHITE,
-            socket_name.ToString().c_str()
-        );
-    }
-}
-
-void GDK::render_socket_indices() {
-    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-
-    for (const SDK::FName socket_name : Pawn::socket_names) {
-        const SDK::FVector location_3d =
-            Pawn::mesh->GetSocketLocation(socket_name);
-
-        SDK::FVector2D location_2d = {};
-
-        if (!World::player_controller->ProjectWorldLocationToScreen(
-                location_3d,
-                &location_2d,
-                false
-            )) {
-            continue;
-        }
-
-        int socket_index = Pawn::mesh->GetBoneIndex(socket_name);
-
-        // XXX too messy
-        // if (socket_index > 11) {
-        //     continue;
-        // }
-
-        draw_list->AddText(
-            ImVec2(location_2d.X, location_2d.Y),
-            IM_COL32_WHITE,
-            std::to_string(socket_index).c_str()
-        );
-    }
-}
-
 void GDK::render_bones() {
     SDK::FVector previous_world_pos = {};
 
@@ -640,6 +602,65 @@ void GDK::render_bp_name() {
         IM_COL32_WHITE,
         Pawn::pawn->GetName().c_str()
     );
+}
+
+void GDK::render_socket_names() {
+    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+
+    for (const SDK::FName socket_name : Pawn::socket_names) {
+        const SDK::FVector location_3d =
+            Pawn::mesh->GetSocketLocation(socket_name);
+
+        SDK::FVector2D location_2d = {};
+
+        if (!World::player_controller->ProjectWorldLocationToScreen(
+                location_3d,
+                &location_2d,
+                false
+            )) {
+            continue;
+        }
+
+        int index = Pawn::mesh->GetBoneIndex(socket_name);
+
+        draw_list->AddText(
+            ImVec2(location_2d.X, location_2d.Y),
+            IM_COL32_WHITE,
+            socket_name.ToString().c_str()
+        );
+    }
+}
+
+void GDK::render_socket_indices() {
+    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+
+    for (const SDK::FName socket_name : Pawn::socket_names) {
+        const SDK::FVector location_3d =
+            Pawn::mesh->GetSocketLocation(socket_name);
+
+        SDK::FVector2D location_2d = {};
+
+        if (!World::player_controller->ProjectWorldLocationToScreen(
+                location_3d,
+                &location_2d,
+                false
+            )) {
+            continue;
+        }
+
+        int socket_index = Pawn::mesh->GetBoneIndex(socket_name);
+
+        // XXX too messy
+        // if (socket_index > 11) {
+        //     continue;
+        // }
+
+        draw_list->AddText(
+            ImVec2(location_2d.X, location_2d.Y),
+            IM_COL32_WHITE,
+            std::to_string(socket_index).c_str()
+        );
+    }
 }
 
 bool GDK::dump_pawn_sockets(const SDK::APawn* const pawn) {

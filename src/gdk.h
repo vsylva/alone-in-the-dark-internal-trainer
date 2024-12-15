@@ -441,15 +441,19 @@ class GDK {
 
     static void render_game_state();
 
+    // release
     static void render_box_2d();
     static void render_box_3d();
-    static void render_socket_names();
-    static void render_socket_indices();
     static void render_bones();
     static void render_distance();
+
+    // debug
     static void render_bp_name();
+    static void render_socket_names();
+    static void render_socket_indices();
 
     static bool dump_pawn_sockets(const SDK::APawn* const);
+
     static bool is_on_screen(ImVec2);
 
     static void player_free_movement();
