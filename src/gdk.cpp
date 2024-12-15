@@ -100,7 +100,7 @@ void GDK::on_frame() {
     GDK::render_game_state();
 
     // HACK fly
-    if (ImGui::IsKeyDown(ImGuiKey_G) && GDK::is_player_free_movement) {
+    if (ImGui::IsKeyDown(ImGuiKey_T) && GDK::is_player_free_movement) {
         GDK::player_free_movement();
     }
 
@@ -203,7 +203,7 @@ void GDK::render_main_window() {
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     // ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
 
-    ImGui::Begin("Key ~##main_window");
+    ImGui::Begin("key ~##main_window");
 
     ImGui::SetWindowSize(ImVec2(600.0, 400.0), ImGuiCond_FirstUseEver);
     ImGui::SetWindowPos(ImVec2(0.0, 0.0), ImGuiCond_FirstUseEver);
@@ -248,7 +248,7 @@ void GDK::render_main_window() {
 
         if (ImGui::BeginTabItem("others##tab_item_1")) {
             ImGui::Checkbox(
-                "(key G)player_free_movement##is_player_free_movement",
+                "(key T)player_free_movement##is_player_free_movement",
                 &GDK::is_player_free_movement
             );
 

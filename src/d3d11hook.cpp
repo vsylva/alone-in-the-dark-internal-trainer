@@ -40,8 +40,8 @@ LRESULT WINAPI D3d11Hook::wnd_proc_new(
                 break;
             }
 
-            if (w_param == 0x47) {
-                ImGui::GetIO().AddKeyEvent(ImGuiKey_G, true);
+            if (w_param == 0x54) {
+                ImGui::GetIO().AddKeyEvent(ImGuiKey_T, true);
                 break;
             }
 
@@ -51,8 +51,8 @@ LRESULT WINAPI D3d11Hook::wnd_proc_new(
                 break;
             }
 
-            if (w_param == 0x47) {
-                ImGui::GetIO().AddKeyEvent(ImGuiKey_G, false);
+            if (w_param == 0x54) {
+                ImGui::GetIO().AddKeyEvent(ImGuiKey_T, false);
                 break;
             }
 
