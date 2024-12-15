@@ -130,7 +130,7 @@ void GDK::on_actors() {
         Pawn::pawn = (SDK::APawn* const)actor;
 
         float distance =
-            World::player_controller->GetDistanceTo(Pawn::pawn);
+            World::player_character->GetDistanceTo(Pawn::pawn);
         if (distance > 4095) {
             continue;
         }
@@ -612,7 +612,7 @@ void GDK::render_distance() {
         return;
     }
 
-    float distance = World::player_controller->GetDistanceTo(Pawn::pawn);
+    float distance = World::player_character->GetDistanceTo(Pawn::pawn);
 
     ImGui::GetBackgroundDrawList()->AddText(
         ImVec2(screen_location_2d.X, screen_location_2d.Y),
