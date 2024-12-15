@@ -1,8 +1,8 @@
 # Alone in the Dark Internal Trainer
 
-game version - (GOG) 1.5
+game version - (GOG) v1.0.5b
 
-unreal engine version - 4.27.2
+unreal engine version - v4.27.2
 
 ![demo](assets/images/demo.png)
 
