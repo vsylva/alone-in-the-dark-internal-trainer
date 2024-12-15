@@ -60,11 +60,14 @@ const std::vector<
 
 bool GDK::is_rendering_box_2d = false;
 bool GDK::is_rendering_box_3d = false;
-bool GDK::is_rendering_socket_names = false;
-bool GDK::is_rendering_socket_indices = false;
 bool GDK::is_rendering_bones = false;
 bool GDK::is_rendering_distance = false;
+
+#ifdef _DEBUG
 bool GDK::is_rendering_bp_name = false;
+bool GDK::is_rendering_socket_names = false;
+bool GDK::is_rendering_socket_indices = false;
+#endif
 
 bool GDK::is_player_free_movement = false;
 
@@ -86,7 +89,8 @@ SDK::TArray<class SDK::FName> Pawn::socket_names = {};
 
 void GDK::on_frame() {
     if (ImGui::IsKeyPressed(ImGuiKey_GraveAccent)) {
-        D3d11Hook::is_menu_visible = !D3d11Hook::is_menu_visible;
+        D3d11Hook::is_showing_main_window =
+            !D3d11Hook::is_showing_main_window;
     }
 
     if (!World::update()) {
@@ -102,11 +106,11 @@ void GDK::on_frame() {
 
     GDK::on_actors();
 
-    if (!D3d11Hook::is_menu_visible) {
+    if (!D3d11Hook::is_showing_main_window) {
         return;
     }
 
-    GDK::render_ui_window();
+    GDK::render_main_window();
 #ifdef _DEBUG
     GDK::render_debug_window();
 #endif
@@ -117,7 +121,7 @@ void GDK::on_frame() {
     // if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
     //     if (!IS_KEY_OPEN_MENU_DOWN) {
     //         IS_KEY_OPEN_MENU_DOWN = true;
-    //         D3d11Hook::is_menu_visble = !D3d11Hook::is_menu_visble;
+    //         D3d11Hook::is_showing_main_window = !D3d11Hook::is_showing_main_window;
     //     }
     // } else if (IS_KEY_OPEN_MENU_DOWN) {
     //     IS_KEY_OPEN_MENU_DOWN = false;
@@ -193,13 +197,13 @@ void GDK::on_pawn() {
 #endif
 }
 
-void GDK::render_ui_window() {
+void GDK::render_main_window() {
     // XXX not needed for now
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     // ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
 
-    ImGui::Begin("menu\tkey ~##menu");
+    ImGui::Begin("Key ~##main_window");
 
     ImGui::SetWindowSize(ImVec2(600.0, 400.0), ImGuiCond_FirstUseEver);
     ImGui::SetWindowPos(ImVec2(0.0, 0.0), ImGuiCond_FirstUseEver);
@@ -214,6 +218,21 @@ void GDK::render_ui_window() {
                 "box 3d##is_render_box_2d",
                 &GDK::is_rendering_box_3d
             );
+
+            ImGui::Checkbox(
+                "bones##is_rendering_bones",
+                &GDK::is_rendering_bones
+            );
+            ImGui::Checkbox(
+                "distance##is_rendering_distance",
+                &GDK::is_rendering_distance
+            );
+
+#ifdef _DEBUG
+            ImGui::Checkbox(
+                "bp name##is_rendering_bp_name",
+                &GDK::is_rendering_bp_name
+            );
             ImGui::Checkbox(
                 "socket names##is_render_socket_names",
                 &GDK::is_rendering_socket_names
@@ -222,19 +241,12 @@ void GDK::render_ui_window() {
                 "socket indices##is_rendering_socket_indices",
                 &GDK::is_rendering_socket_indices
             );
-            ImGui::Checkbox(
-                "bones##is_rendering_bones",
-                &GDK::is_rendering_bones
-            );
-            ImGui::Checkbox(
-                "distance##is_rendering_flags",
-                &GDK::is_rendering_distance
-            );
-            ImGui::Checkbox(
-                "bp name##is_rendering_bp_name",
-                &GDK::is_rendering_bp_name
-            );
+#endif
 
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("others##tab_item_1")) {
             ImGui::Checkbox(
                 "(key G)player_free_movement##is_player_free_movement",
                 &GDK::is_player_free_movement
@@ -242,7 +254,6 @@ void GDK::render_ui_window() {
 
             ImGui::EndTabItem();
         }
-
         ImGui::EndTabBar();
     }
 
@@ -253,7 +264,7 @@ void GDK::render_ui_window() {
 }
 
 void GDK::render_debug_window() {
-    ImGui::Begin("bone list dumper\tkey ~##debug window");
+    ImGui::Begin("Key ~\tbone list dumper##debug window");
 
     ImGui::SetWindowSize(ImVec2(600.0, 400.0), ImGuiCond_FirstUseEver);
     ImGui::SetWindowPos(ImVec2(600.0, 0.0), ImGuiCond_FirstUseEver);
@@ -469,32 +480,23 @@ void GDK::render_box_3d() {
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
     for (int i = 0; i < 4; ++i) {
-        if (is_on_screen(screen_locations_2d[i])
-            && is_on_screen(screen_locations_2d[(i + 1) % 4])) {
-            draw_list->AddLine(
-                screen_locations_2d[i],
-                screen_locations_2d[(i + 1) % 4],
-                IM_COL32_WHITE
-            );
-        }
+        draw_list->AddLine(
+            screen_locations_2d[i],
+            screen_locations_2d[(i + 1) % 4],
+            IM_COL32_WHITE
+        );
 
-        if (is_on_screen(screen_locations_2d[i + 4])
-            && is_on_screen(screen_locations_2d[(i + 1) % 4 + 4])) {
-            draw_list->AddLine(
-                screen_locations_2d[i + 4],
-                screen_locations_2d[(i + 1) % 4 + 4],
-                IM_COL32_WHITE
-            );
-        }
+        draw_list->AddLine(
+            screen_locations_2d[i + 4],
+            screen_locations_2d[(i + 1) % 4 + 4],
+            IM_COL32_WHITE
+        );
 
-        if (is_on_screen(screen_locations_2d[i])
-            && is_on_screen(screen_locations_2d[i + 4])) {
-            draw_list->AddLine(
-                screen_locations_2d[i],
-                screen_locations_2d[i + 4],
-                IM_COL32_WHITE
-            );
-        }
+        draw_list->AddLine(
+            screen_locations_2d[i],
+            screen_locations_2d[i + 4],
+            IM_COL32_WHITE
+        );
     }
 }
 

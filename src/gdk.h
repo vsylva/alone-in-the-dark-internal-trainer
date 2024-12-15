@@ -436,7 +436,7 @@ class GDK {
     static void on_actors();
     static void on_pawn();
 
-    static void render_ui_window();
+    static void render_main_window();
     static void render_debug_window();
 
     static void render_game_state();
@@ -465,11 +465,14 @@ class GDK {
 
     static bool is_rendering_box_2d;
     static bool is_rendering_box_3d;
-    static bool is_rendering_socket_names;
-    static bool is_rendering_socket_indices;
     static bool is_rendering_bones;
     static bool is_rendering_distance;
+
+#ifdef _DEBUG
     static bool is_rendering_bp_name;
+    static bool is_rendering_socket_names;
+    static bool is_rendering_socket_indices;
+#endif
 
     static bool is_player_free_movement;
 
@@ -504,6 +507,9 @@ class Pawn {
     static SDK::ACharacter* character;
     static SDK::USkeletalMeshComponent* mesh;
     static SDK::TArray<class SDK::FName> socket_names;
+
+    static SDK::FVector world_location_3d;
+    static SDK::FVector world_location_2d;
 
   protected:
     static bool update();

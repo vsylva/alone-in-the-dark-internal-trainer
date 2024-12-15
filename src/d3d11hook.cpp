@@ -10,7 +10,7 @@
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
-bool D3d11Hook::is_menu_visible = true;
+bool D3d11Hook::is_showing_main_window = true;
 bool D3d11Hook::is_initialized = false;
 WNDPROC D3d11Hook::g_o_wnd_proc = nullptr;
 HWND D3d11Hook::g_output_wnd = nullptr;
@@ -74,7 +74,7 @@ LRESULT WINAPI D3d11Hook::wnd_proc_new(
             break;
     }
 
-    if (D3d11Hook::is_menu_visible) {
+    if (D3d11Hook::is_showing_main_window) {
         ImGui::GetIO().MouseDrawCursor = true;
     } else {
         ImGui::GetIO().MouseDrawCursor = false;
